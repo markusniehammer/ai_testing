@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Perceptron-Lernen erleben – v1</title>
+<style>
+  :root {
+    --bg: #08111f; --bg2: #111b35; --text: #eef4ff; --muted: #bfd0ee;
+    --blue: #7db0ff; --blue2: #9f85ff; --green: #81e6b3; --yellow: #ffd166; --red: #ff9a9a;
+    --best: #f0c75e; --shadow: 0 18px 44px rgba(0,0,0,.28); --radius: 22px;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { margin:0; color:var(--text); font-family:Inter,Segoe UI,Arial,sans-serif; background:radial-gradient(circle at top right, rgba(125,176,255,.18), transparent 16%),radial-gradient(circle at 16% 18%, rgba(159,133,255,.12), transparent 22%),linear-gradient(180deg, var(--bg) 0%, var(--bg2) 100%); min-height:100vh; }
+  .wrap { max-width:1220px; margin:0 auto; padding:28px 22px 60px; }
+  .kicker{display:inline-block;margin-bottom:10px;padding:6px 10px;border-radius:999px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.08);font-size:.8rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;}
+  .hero { padding:24px; margin-bottom:18px; border-radius:26px; background:linear-gradient(135deg, rgba(125,176,255,.19), rgba(159,133,255,.14)); border:1px solid rgba(255,255,255,.10); box-shadow:var(--shadow); backdrop-filter:blur(18px) saturate(170%); }
+  .hero h2 { margin:0 0 8px; font-size:1.88rem; line-height:1.15; }
+  .hero p { margin:0 0 8px; color:var(--muted); line-height:1.55; }
+  .stepnav { display:flex; gap:10px; flex-wrap:wrap; margin-top:14px; }
+  .stepnav a { text-decoration:none; color:var(--text); padding:8px 15px; border-radius:999px; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.10); font-weight:800; font-size:.86rem; transition:.18s ease; }
+  .stepnav a:hover { background:rgba(255,255,255,.14); transform:translateY(-1px); }
+  .card { padding:20px; margin-bottom:18px; border-radius:var(--radius); background:linear-gradient(180deg, rgba(255,255,255,.085), rgba(255,255,255,.045)); border:1px solid rgba(255,255,255,.09); box-shadow:var(--shadow); backdrop-filter:blur(16px) saturate(180%); position:relative; z-index:1; }
+  .card h3 { margin:0 0 6px; font-size:1.22rem; }
+  .sub { margin:0 0 14px; color:var(--muted); line-height:1.5; }
+  .subhead { display:flex; align-items:center; gap:9px; margin:18px 0 8px; font-size:1.03rem; font-weight:900; color:var(--blue); }
+  .subhead .tag { background:rgba(125,176,255,.16); border:1px solid rgba(125,176,255,.32); color:var(--text); padding:2px 10px; border-radius:999px; font-size:.74rem; }
+  .split-2 { display:grid; grid-template-columns:1fr 1fr; gap:18px; align-items:start; }
+  @media (max-width:940px) { .split-2 { grid-template-columns:1fr; } }
+  .label-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;} label{font-weight:800;} .hint-text{color:var(--muted);font-size:.88rem;line-height:1.45;margin-top:4px;}
+  .tooltip{position:relative;display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;border:1px solid rgba(255,255,255,.15);color:var(--muted);font-size:.78rem;cursor:help;}
+  .tooltip::after{content:attr(data-tip);position:absolute;left:50%;top:calc(100% + 10px);transform:translateX(-50%);width:min(320px,85vw);background:#111a36;color:var(--text);border:1px solid rgba(255,255,255,.2);border-radius:14px;padding:10px 12px;font-size:.82rem;line-height:1.45;box-shadow:var(--shadow);opacity:0;visibility:hidden;transition:.16s ease;z-index:50;pointer-events:none;} .tooltip:hover::after,.tooltip:focus::after{opacity:1;visibility:visible;}
+  input[type="number"],select{width:100%;padding:11px 12px;border-radius:14px;border:1px solid rgba(255,255,255,.11);background:#0f1a35;color:var(--text);outline:none;}
+  input[type="range"]{width:100%;accent-color:var(--blue);cursor:pointer;background:transparent;}
+  input[type="number"]:focus,select:focus{border-color:rgba(125,176,255,.62);box-shadow:0 0 0 3px rgba(125,176,255,.14);}
+  button{appearance:none;border:0;cursor:pointer;border-radius:15px;padding:11px 16px;font-weight:800;transition:.18s ease;} .btn-primary{color:white;background:linear-gradient(135deg,var(--blue),var(--blue2));box-shadow:0 12px 28px rgba(125,176,255,.22);} .btn-primary:hover{transform:translateY(-1px);} .btn-secondary{color:var(--text);background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.08);} .btn-secondary:hover{background:rgba(255,255,255,.11);} .btn-row{display:flex;gap:10px;flex-wrap:wrap;}
+  .meta-box{padding:12px 14px;border-radius:16px;background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.09);color:var(--muted);line-height:1.5;font-size:.9rem;}
+  .note{padding:12px 14px;border-radius:16px;background:rgba(125,176,255,.08);border:1px solid rgba(125,176,255,.18);color:var(--muted);font-size:.88rem;line-height:1.5;}
+  .badge{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:999px;background:rgba(125,176,255,.16);color:var(--text);font-size:.8rem;border:1px solid rgba(125,176,255,.28);}
+  .badge.ok{background:rgba(134,230,178,.18);border-color:rgba(134,230,178,.35);color:#c9f7dd;}
+  .badge.warn{background:rgba(255,154,154,.16);border-color:rgba(255,154,154,.34);color:#ffd9d9;}
+  .table-wrap{overflow:auto;border-radius:16px;border:1px solid rgba(255,255,255,.08);margin-top:10px;} table{width:100%;border-collapse:collapse;min-width:520px;} th,td{border:1px solid rgba(255,255,255,.08);padding:8px 10px;text-align:left;font-size:.88rem;} th{background:rgba(255,255,255,.06);} td{background:rgba(255,255,255,.02);}
+  tr.correct td{background:rgba(134,230,178,.10);} tr.incorrect td{background:rgba(255,154,154,.10);}
+  .quick-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:14px;} @media (max-width:900px){.quick-metrics{grid-template-columns:repeat(2,1fr);}}
+  .quick-metric{padding:16px;border-radius:18px;background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.09);} .quick-metric .l{color:var(--muted);font-size:.86rem;} .quick-metric .v{margin-top:5px;font-size:1.5rem;font-weight:900;}
+  .status-box{white-space:pre-line;min-height:90px;background:#0e1731;color:#dce8ff;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;line-height:1.45;border-radius:16px;border:1px solid rgba(255,255,255,.09);padding:12px 14px;margin-top:12px;}
+  .perceptron-diagram{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:14px 4px;}
+  .pd-col{display:flex;flex-direction:column;gap:10px;}
+  .pd-node{padding:10px 14px;border-radius:14px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.09);font-weight:800;text-align:center;min-width:88px;font-size:.9rem;}
+  .pd-node.input{color:var(--blue);} .pd-node.bias{color:var(--yellow);}
+  .pd-node.sum{background:rgba(125,176,255,.14);border-color:rgba(125,176,255,.32);min-width:190px;font-size:.86rem;font-weight:700;}
+  .pd-node.activation{background:rgba(159,133,255,.14);border-color:rgba(159,133,255,.32);min-width:190px;font-size:.8rem;font-weight:700;}
+  .pd-node.output{background:rgba(134,230,178,.16);border-color:rgba(134,230,178,.34);}
+  .pd-weight{font-weight:800;color:var(--muted);font-size:.82rem;text-align:center;}
+  .pd-arrow{font-size:1.4rem;color:var(--muted);}
+  .metrics-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;} @media (max-width:640px){.metrics-grid{grid-template-columns:1fr;}}
+  .metric-donut-card{padding:18px;text-align:center;border-radius:20px;background:linear-gradient(180deg, rgba(255,255,255,.085), rgba(255,255,255,.045));border:1px solid rgba(255,255,255,.09);box-shadow:var(--shadow);}
+  .donut{width:130px;height:130px;border-radius:50%;margin:0 auto 12px;position:relative;display:flex;align-items:center;justify-content:center;background:conic-gradient(var(--clr,var(--blue)) calc(var(--pct,0)*1%), rgba(255,255,255,.08) 0);}
+  .donut::before{content:'';position:absolute;inset:13px;border-radius:50%;background:#101c38;}
+  .donut-value{position:relative;z-index:1;font-size:1.5rem;font-weight:900;}
+  .donut.acc{--clr:var(--blue);} .donut.err{--clr:var(--red);}
+  .metric-name{font-weight:900;margin-bottom:4px;} .metric-formula{color:var(--muted);font-size:.8rem;font-family:ui-monospace,Menlo,Consolas,monospace;margin-top:6px;line-height:1.4;}
+  .weights-canvas{width:100%;height:230px;border-radius:16px;background:#0e1731;border:1px solid rgba(255,255,255,.08);display:block;}
+  .legend{display:flex;gap:14px;flex-wrap:wrap;color:var(--muted);font-size:.86rem;margin-top:8px;}
+  .legend-dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <section class="hero">
+    <div class="kicker">Übung 3.4.2</div>
+    <h2>Erleben, wie ein Perceptron lernt</h2>
+    <p>Ein Perceptron ist der einfachste Baustein eines neuronalen Netzes: Es gewichtet Eingaben, summiert sie mit einem Bias und trifft über eine Sprungfunktion eine Ja/Nein-Entscheidung. Anhand des <strong>AND-Gatters</strong> siehst du hier Schritt für Schritt, wie das Perceptron seine Gewichte und den Bias über mehrere Epochen anpasst, bis der Fehler auf allen Trainingsbeispielen null ist.</p>
+    <div class="stepnav">
+      <a href="#step1">Schritt 1 · Aufbau</a>
+      <a href="#step2">Schritt 2 · Daten &amp; Parameter</a>
+      <a href="#step3">Schritt 3 · Training</a>
+      <a href="#step4">Schritt 4 · Konvergenz</a>
+    </div>
+  </section>
+
+  <section class="card" id="step1">
+    <h3>Schritt 1: Aufbau des Perceptrons</h3>
+    <p class="sub">Jede Eingabe wird mit einem Gewicht multipliziert, dazu kommt ein Bias. Die Summe entscheidet über die Sprungfunktion, ob die Ausgabe 0 oder 1 ist. Die Werte unten aktualisieren sich live, sobald du in Schritt 3 trainierst.</p>
+    <div class="perceptron-diagram">
+      <div class="pd-col">
+        <div class="pd-node input">x₁</div>
+        <div class="pd-node input">x₂</div>
+        <div class="pd-node bias">1 (Bias)</div>
+      </div>
+      <div class="pd-col">
+        <div class="pd-weight" id="lblW1">w₁ = 0.00</div>
+        <div class="pd-weight" id="lblW2">w₂ = 0.00</div>
+        <div class="pd-weight" id="lblB">b = 0.00</div>
+      </div>
+      <div class="pd-arrow">→</div>
+      <div class="pd-node sum">Summe<br>z = w₁x₁ + w₂x₂ + b</div>
+      <div class="pd-arrow">→</div>
+      <div class="pd-node activation">Sprungfunktion<br>ŷ = 1, wenn z ≥ 0, sonst 0</div>
+      <div class="pd-arrow">→</div>
+      <div class="pd-node output">ŷ</div>
+    </div>
+    <div class="note">Die <strong>Lernregel</strong> passt Gewichte und Bias nach jedem Beispiel an: w<sub>i</sub> ← w<sub>i</sub> + η · (y − ŷ) · x<sub>i</sub> und b ← b + η · (y − ŷ), wobei η die Lernrate und (y − ŷ) der Fehler zwischen Ziel und Vorhersage ist.</div>
+  </section>
+
+  <div class="split-2">
+    <section class="card" id="step2">
+      <h3>Schritt 2: Trainingsdaten &amp; Lernparameter</h3>
+      <p class="sub">Wähle eine Logikfunktion mit zwei Eingängen und lege fest, wie schnell und wie lange das Perceptron trainieren darf.</p>
+
+      <div class="subhead"><span class="tag">2a</span> Logikfunktion</div>
+      <div class="label-row"><label for="gateSelect">Zu lernende Funktion</label><span class="tooltip" tabindex="0" data-tip="AND, OR und NAND sind linear trennbar – das Perceptron findet dafür immer eine Lösung. XOR ist ein Bonus-Beispiel: hier konvergiert das Perceptron nicht.">?</span></div>
+      <select id="gateSelect"></select>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>x₁</th><th>x₂</th><th>Ziel y</th><th>z (aktuell)</th><th>ŷ (aktuell)</th><th>Korrekt?</th></tr></thead>
+          <tbody id="truthBody"></tbody>
+        </table>
+      </div>
+
+      <div class="subhead"><span class="tag">2b</span> Lernparameter</div>
+      <div class="label-row"><label for="learningRateInput">Lernrate η</label><span class="tooltip" tabindex="0" data-tip="Größere Lernrate bedeutet größere Sprünge bei jedem Update – kann schneller konvergieren, aber auch überschießen.">?</span></div>
+      <input id="learningRateSlider" type="range" min="0.05" max="1" step="0.05" value="0.5">
+      <input id="learningRateInput" type="number" min="0.05" max="1" step="0.05" value="0.5" style="margin-top:8px;">
+      <div class="label-row" style="margin-top:12px;"><label for="maxEpochsInput">Maximale Epochen</label><span class="tooltip" tabindex="0" data-tip="Obergrenze, damit das Training auch dann stoppt, wenn keine Konvergenz erreicht wird (z. B. bei XOR).">?</span></div>
+      <input id="maxEpochsInput" type="number" min="5" max="200" step="5" value="50">
+      <div class="hint-text" style="margin-top:8px;">Startgewichte: w₁ = w₂ = b = 0.00 (Reset setzt immer auf diese Startwerte zurück).</div>
+    </section>
+
+    <section class="card" id="step3">
+      <h3>Schritt 3: Schrittweises Training</h3>
+      <p class="sub">Führe einzelne Trainingsschritte aus oder lass das Perceptron automatisch trainieren, bis der Fehler über alle Beispiele einer Epoche null ist.</p>
+      <div class="btn-row">
+        <button type="button" class="btn-primary" id="stepBtn">Einen Trainingsschritt ausführen</button>
+        <button type="button" class="btn-secondary" id="autoplayBtn">Autoplay bis Konvergenz</button>
+        <button type="button" class="btn-secondary" id="resetTrainingBtn">Training zurücksetzen</button>
+      </div>
+      <div id="convergenceBanner" style="margin-top:12px;"><span class="badge">Training noch nicht gestartet</span></div>
+      <canvas id="weightsCanvas" class="weights-canvas" style="margin-top:12px;"></canvas>
+      <div class="legend"><span><span class="legend-dot" style="background:#7db0ff"></span>Ziel 0</span><span><span class="legend-dot" style="background:#ffd166"></span>Ziel 1</span><span>— Trenngerade (aktuelle Gewichte)</span></div>
+      <div id="statusBox" class="status-box">Bereit. Klicke „Einen Trainingsschritt ausführen“, um zu starten.</div>
+      <div class="quick-metrics">
+        <div class="quick-metric"><div class="l">Epoche</div><div class="v" id="epochQuick">1</div></div>
+        <div class="quick-metric"><div class="l">Nächstes Beispiel</div><div class="v" id="exampleQuick">1 / 4</div></div>
+        <div class="quick-metric"><div class="l">Fehler in dieser Epoche</div><div class="v" id="epochErrorQuick">0</div></div>
+        <div class="quick-metric"><div class="l">Status</div><div class="v" id="statusQuick" style="font-size:1rem;">Läuft</div></div>
+      </div>
+    </section>
+  </div>
+
+  <section class="card" id="step4">
+    <h3>Schritt 4: Konvergenz beobachten</h3>
+    <p class="sub">Diese Übersicht zeigt, wie gut das Perceptron mit den aktuellen Gewichten bereits ist, sowie den vollständigen Update-Verlauf.</p>
+    <div class="metrics-grid">
+      <div class="metric-donut-card">
+        <div class="donut acc" id="donutAcc"><span class="donut-value">0 %</span></div>
+        <div class="metric-name">Trainingsgenauigkeit (aktuell)</div>
+        <div class="metric-formula">Korrekt klassifizierte Beispiele / 4</div>
+      </div>
+      <div class="metric-donut-card">
+        <div class="donut err" id="donutErr"><span class="donut-value">0 %</span></div>
+        <div class="metric-name">Fehlerrate (aktuell)</div>
+        <div class="metric-formula">1 − Trainingsgenauigkeit</div>
+      </div>
+    </div>
+
+    <div class="subhead">Update-Verlauf</div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>#</th><th>Epoche</th><th>x₁</th><th>x₂</th><th>Ziel y</th><th>z</th><th>ŷ</th><th>Fehler (y−ŷ)</th><th>w₁ danach</th><th>w₂ danach</th><th>b danach</th></tr></thead>
+        <tbody id="historyBody"><tr><td colspan="11">Noch keine Trainingsschritte vorhanden.</td></tr></tbody>
+      </table>
+    </div>
+    <div class="note" style="margin-top:12px;">Sobald der Fehler über eine komplette Epoche (alle vier Beispiele) null ist, hat das Perceptron die Funktion vollständig gelernt. Bei linear trennbaren Funktionen wie AND, OR und NAND ist das garantiert der Fall; bei XOR (Bonus-Auswahl) konvergiert das einfache Perceptron dagegen nie – ein guter Anlass, über die Grenzen linearer Modelle zu sprechen.</div>
+  </section>
+
+</div>
+
+<script>
+  const GATES = {
+    and:  { label:'AND',  rows:[[0,0,0],[0,1,0],[1,0,0],[1,1,1]] },
+    or:   { label:'OR',   rows:[[0,0,0],[0,1,1],[1,0,1],[1,1,1]] },
+    nand: { label:'NAND', rows:[[0,0,1],[0,1,1],[1,0,1],[1,1,0]] },
+    xor:  { label:'XOR (Bonus: nicht linear trennbar)', rows:[[0,0,0],[0,1,1],[1,0,1],[1,1,0]] }
+  };
+
+  const state = {
+    gateKey: 'and',
+    w1: 0, w2: 0, b: 0,
+    learningRate: 0.5,
+    maxEpochs: 50,
+    epoch: 1,
+    exampleIndex: 0,
+    epochErrors: 0,
+    history: [],
+    converged: false,
+    maxEpochsReached: false,
+    autoTimer: null
+  };
+  function $(id){ return document.getElementById(id); }
+
+  function activate(z){ return z >= 0 ? 1 : 0; }
+
+  function trainStep(){
+    if (state.converged || state.maxEpochsReached) return false;
+    const gate = GATES[state.gateKey];
+    const row = gate.rows[state.exampleIndex];
+    const x1 = row[0], x2 = row[1], target = row[2];
+    const z = state.w1*x1 + state.w2*x2 + state.b;
+    const pred = activate(z);
+    const error = target - pred;
+    state.w1 += state.learningRate * error * x1;
+    state.w2 += state.learningRate * error * x2;
+    state.b += state.learningRate * error;
+    state.epochErrors += Math.abs(error);
+    state.history.unshift({ epoch: state.epoch, x1, x2, target, z, pred, error, w1: state.w1, w2: state.w2, b: state.b });
+    state.exampleIndex++;
+    if (state.exampleIndex >= gate.rows.length){
+      state.exampleIndex = 0;
+      if (state.epochErrors === 0){
+        state.converged = true;
+      } else {
+        state.epoch++;
+        state.epochErrors = 0;
+        if (state.epoch > state.maxEpochs) state.maxEpochsReached = true;
+      }
+    }
+    return true;
+  }
+
+  function currentAccuracy(){
+    const gate = GATES[state.gateKey];
+    let correct = 0;
+    gate.rows.forEach(row=>{ const z = state.w1*row[0] + state.w2*row[1] + state.b; if (activate(z) === row[2]) correct++; });
+    return correct / gate.rows.length;
+  }
+
+  function renderDiagram(){
+    $('lblW1').textContent = 'w₁ = ' + state.w1.toFixed(2);
+    $('lblW2').textContent = 'w₂ = ' + state.w2.toFixed(2);
+    $('lblB').textContent = 'b = ' + state.b.toFixed(2);
+  }
+
+  function renderTruthTable(){
+    const gate = GATES[state.gateKey];
+    $('truthBody').innerHTML = gate.rows.map(row=>{
+      const z = state.w1*row[0] + state.w2*row[1] + state.b;
+      const pred = activate(z);
+      const ok = pred === row[2];
+      return '<tr class="'+(ok?'correct':'incorrect')+'"><td>'+row[0]+'</td><td>'+row[1]+'</td><td>'+row[2]+'</td><td>'+z.toFixed(2)+'</td><td>'+pred+'</td><td>'+(ok?'✓':'✗')+'</td></tr>';
+    }).join('');
+  }
+
+  function renderCanvas(){
+    const canvas = $('weightsCanvas'); const ctx = canvas.getContext('2d');
+    const W = canvas.width = canvas.clientWidth, H = canvas.height = 230;
+    ctx.clearRect(0,0,W,H);
+    const minV=-0.5, maxV=1.5, margin=28;
+    function toPx(x1,x2){ const px = margin + (x1-minV)/(maxV-minV)*(W-2*margin); const py = H-margin - (x2-minV)/(maxV-minV)*(H-2*margin); return [px,py]; }
+    // Achsen
+    ctx.strokeStyle = 'rgba(255,255,255,.15)'; ctx.lineWidth = 1;
+    const [ox,oy] = toPx(0,0), [ex,ey] = toPx(1,1);
+    ctx.beginPath(); ctx.moveTo(margin, H-margin); ctx.lineTo(W-margin, H-margin); ctx.moveTo(margin, margin); ctx.lineTo(margin, H-margin); ctx.stroke();
+    // Trenngerade w1*x1 + w2*x2 + b = 0
+    if (Math.abs(state.w2) > 1e-9){
+      const x1a = minV, x2a = -(state.w1*x1a + state.b)/state.w2;
+      const x1b = maxV, x2b = -(state.w1*x1b + state.b)/state.w2;
+      const [pxA,pyA] = toPx(x1a,x2a), [pxB,pyB] = toPx(x1b,x2b);
+      ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(pxA,pyA); ctx.lineTo(pxB,pyB); ctx.stroke();
+    } else if (Math.abs(state.w1) > 1e-9){
+      const x1c = -state.b/state.w1;
+      const [pxA,pyA] = toPx(x1c,minV), [pxB,pyB] = toPx(x1c,maxV);
+      ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(pxA,pyA); ctx.lineTo(pxB,pyB); ctx.stroke();
+    }
+    // Datenpunkte
+    const gate = GATES[state.gateKey];
+    gate.rows.forEach(row=>{
+      const [px,py] = toPx(row[0], row[1]);
+      ctx.beginPath(); ctx.arc(px,py,7,0,Math.PI*2);
+      ctx.fillStyle = row[2] === 0 ? '#7db0ff' : '#ffd166';
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(0,0,0,.35)'; ctx.lineWidth = 1; ctx.stroke();
+    });
+  }
+
+  function renderConvergenceBanner(){
+    const el = $('convergenceBanner');
+    if (state.converged){
+      el.innerHTML = '<span class="badge ok">Konvergiert nach '+state.epoch+' Epoche(n) – Fehler = 0 auf allen Beispielen</span>';
+    } else if (state.maxEpochsReached){
+      el.innerHTML = '<span class="badge warn">Maximale Epochenzahl ('+state.maxEpochs+') erreicht ohne Konvergenz</span>';
+    } else if (state.history.length === 0){
+      el.innerHTML = '<span class="badge">Training noch nicht gestartet</span>';
+    } else {
+      el.innerHTML = '<span class="badge">Training läuft – Epoche '+state.epoch+'</span>';
+    }
+  }
+
+  function renderQuickMetrics(){
+    const gate = GATES[state.gateKey];
+    $('epochQuick').textContent = String(state.epoch);
+    $('exampleQuick').textContent = (state.exampleIndex+1)+' / '+gate.rows.length;
+    $('epochErrorQuick').textContent = String(state.epochErrors);
+    $('statusQuick').textContent = state.converged ? 'Konvergiert' : (state.maxEpochsReached ? 'Abgebrochen' : 'Läuft');
+  }
+
+  function setDonut(id, pct){ const el = $(id); el.style.setProperty('--pct', pct.toFixed(1)); el.querySelector('.donut-value').textContent = pct.toFixed(1)+' %'; }
+  function renderDonuts(){
+    const acc = currentAccuracy()*100;
+    setDonut('donutAcc', acc);
+    setDonut('donutErr', 100-acc);
+  }
+
+  function renderHistory(){
+    const body = $('historyBody');
+    if (!state.history.length){ body.innerHTML = '<tr><td colspan="11">Noch keine Trainingsschritte vorhanden.</td></tr>'; return; }
+    body.innerHTML = state.history.map((h,idx)=>
+      '<tr><td>'+(state.history.length-idx)+'</td><td>'+h.epoch+'</td><td>'+h.x1+'</td><td>'+h.x2+'</td><td>'+h.target+'</td><td>'+h.z.toFixed(2)+'</td><td>'+h.pred+'</td><td>'+h.error+'</td><td>'+h.w1.toFixed(2)+'</td><td>'+h.w2.toFixed(2)+'</td><td>'+h.b.toFixed(2)+'</td></tr>'
+    ).join('');
+  }
+
+  function status(text){ $('statusBox').textContent = text; }
+
+  function renderAll(){
+    renderDiagram(); renderTruthTable(); renderCanvas(); renderConvergenceBanner(); renderQuickMetrics(); renderDonuts(); renderHistory();
+  }
+
+  function doStep(){
+    if (state.converged){ status('Bereits konvergiert – kein weiteres Training nötig. Zum Ausprobieren: „Training zurücksetzen“.'); return; }
+    if (state.maxEpochsReached){ status('Maximale Epochenzahl erreicht. Setze das Training zurück, um erneut zu starten.'); return; }
+    const gate = GATES[state.gateKey];
+    const row = gate.rows[state.exampleIndex];
+    const before = { w1: state.w1, w2: state.w2, b: state.b };
+    trainStep();
+    const last = state.history[0];
+    status('Beispiel (x₁,x₂) = ('+last.x1+','+last.x2+'), Ziel y = '+last.target+'\nz = '+before.w1.toFixed(2)+'·'+last.x1+' + '+before.w2.toFixed(2)+'·'+last.x2+' + '+before.b.toFixed(2)+' = '+last.z.toFixed(2)+'\nŷ = '+last.pred+'  →  Fehler (y−ŷ) = '+last.error+'\nGewichte aktualisiert: w₁ = '+last.w1.toFixed(2)+', w₂ = '+last.w2.toFixed(2)+', b = '+last.b.toFixed(2));
+    renderAll();
+    if (state.converged) stopAutoplay();
+    if (state.maxEpochsReached) stopAutoplay();
+  }
+
+  function startAutoplay(){
+    if (state.autoTimer) return;
+    $('autoplayBtn').textContent = 'Autoplay stoppen';
+    state.autoTimer = setInterval(()=>{
+      if (state.converged || state.maxEpochsReached){ stopAutoplay(); return; }
+      doStep();
+    }, 350);
+  }
+  function stopAutoplay(){
+    if (state.autoTimer){ clearInterval(state.autoTimer); state.autoTimer = null; }
+    $('autoplayBtn').textContent = 'Autoplay bis Konvergenz';
+  }
+
+  function resetTraining(){
+    stopAutoplay();
+    state.w1 = 0; state.w2 = 0; state.b = 0;
+    state.epoch = 1; state.exampleIndex = 0; state.epochErrors = 0;
+    state.history = []; state.converged = false; state.maxEpochsReached = false;
+    status('Bereit. Klicke „Einen Trainingsschritt ausführen“, um zu starten.');
+    renderAll();
+  }
+
+  function renderGateSelect(){
+    $('gateSelect').innerHTML = Object.keys(GATES).map(key=>'<option value="'+key+'">'+GATES[key].label+'</option>').join('');
+    $('gateSelect').value = state.gateKey;
+  }
+
+  function attachEvents(){
+    $('gateSelect').addEventListener('change', ()=>{ state.gateKey = $('gateSelect').value; resetTraining(); });
+    $('learningRateSlider').addEventListener('input', ()=>{ state.learningRate = Number($('learningRateSlider').value); $('learningRateInput').value = $('learningRateSlider').value; });
+    $('learningRateInput').addEventListener('input', ()=>{ state.learningRate = Number($('learningRateInput').value)||0.5; $('learningRateSlider').value = String(state.learningRate); });
+    $('maxEpochsInput').addEventListener('input', ()=>{ state.maxEpochs = Number($('maxEpochsInput').value)||50; });
+    $('stepBtn').addEventListener('click', ()=>{ stopAutoplay(); doStep(); });
+    $('autoplayBtn').addEventListener('click', ()=>{ state.autoTimer ? stopAutoplay() : startAutoplay(); });
+    $('resetTrainingBtn').addEventListener('click', resetTraining);
+    window.addEventListener('resize', renderCanvas);
+  }
+
+  renderGateSelect();
+  attachEvents();
+  renderAll();
+</script>
+</body>
+</html>

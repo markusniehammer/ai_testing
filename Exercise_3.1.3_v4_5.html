@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ML Workflow – v4.5</title>
+  <style>
+    :root {
+      --bg: #08111f; --bg2: #111b35; --text: #eef4ff; --muted: #bfd0ee;
+      --blue: #7db0ff; --blue2: #9f85ff; --green: #81e6b3; --yellow: #ffd166; --red: #ff9a9a;
+      --best: #f0c75e; --shadow: 0 18px 44px rgba(0,0,0,.28); --radius: 22px;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body { margin:0; color:var(--text); font-family:Inter,Segoe UI,Arial,sans-serif; background:radial-gradient(circle at top right, rgba(125,176,255,.18), transparent 16%),radial-gradient(circle at 16% 18%, rgba(159,133,255,.12), transparent 22%),linear-gradient(180deg, var(--bg) 0%, var(--bg2) 100%); min-height:100vh; }
+    .app { display:grid; grid-template-columns:320px minmax(0,1fr); min-height:100vh; }
+    .sidebar { position:sticky; top:0; height:100vh; padding:22px 18px; background:rgba(8,16,32,.72); backdrop-filter:blur(18px) saturate(160%); border-right:1px solid rgba(255,255,255,.08); overflow-y:auto; }
+    .glass { background:linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.05)); border:1px solid rgba(255,255,255,.10); box-shadow:var(--shadow); backdrop-filter:blur(18px) saturate(180%); }
+    .brand,.sidebar-note,.sidebar-group,.card,.metric,.meta-box,.status-box,.history-box,.bar-chart,.workflow-box { border-radius:var(--radius); }
+    .brand { padding:16px; margin-bottom:18px; } .brand h1{margin:0 0 7px;font-size:1.18rem;} .brand p{margin:0;color:var(--muted);font-size:.92rem;line-height:1.45;}
+    .menu-title{margin:14px 8px 10px;color:var(--muted);font-size:.78rem;letter-spacing:.08em;text-transform:uppercase;} .step-menu{display:grid;gap:8px;}
+    .sidebar-group{padding:10px;margin:10px 0 12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);} .sidebar-group-title{padding:2px 6px 8px;color:var(--muted);font-size:.8rem;font-weight:800;text-transform:uppercase;letter-spacing:.05em;}
+    .step-link{display:block;text-decoration:none;color:var(--text);padding:12px 14px;border-radius:15px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);transition:.18s ease;} .step-link:hover{background:rgba(255,255,255,.08);} .step-link.active{background:linear-gradient(135deg, rgba(125,176,255,.22), rgba(159,133,255,.14));border-color:rgba(125,176,255,.38);} .step-link .idx{display:block;color:var(--blue);font-weight:800;font-size:.78rem;margin-bottom:4px;} .step-link .title{display:block;font-weight:800;} .step-link .hint{display:block;color:var(--muted);font-size:.82rem;margin-top:2px;}
+    .sidebar-note{margin-top:18px;padding:13px 14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);color:var(--muted);font-size:.86rem;line-height:1.45;}
+    .main{padding:28px;} .hero{padding:24px;margin-bottom:18px;border-radius:26px;background:linear-gradient(135deg, rgba(125,176,255,.19), rgba(159,133,255,.14));border:1px solid rgba(255,255,255,.10);box-shadow:var(--shadow);backdrop-filter:blur(18px) saturate(170%);} .hero h2{margin:0 0 8px;font-size:1.88rem;line-height:1.15;} .hero p{margin:0;color:var(--muted);line-height:1.55;}
+    .card{padding:20px;margin-bottom:18px;background:linear-gradient(180deg, rgba(255,255,255,.085), rgba(255,255,255,.045));border:1px solid rgba(255,255,255,.09);box-shadow:var(--shadow);backdrop-filter:blur(16px) saturate(180%);overflow:visible;position:relative;z-index:1;} .card h3{margin:0 0 6px;font-size:1.22rem;} .sub{margin:0 0 16px;color:var(--muted);line-height:1.5;}
+    .grid-2,.grid-3,.grid-4{display:grid;gap:14px;} .grid-2{grid-template-columns:repeat(2,minmax(0,1fr));} .grid-3{grid-template-columns:1fr 1fr 1.35fr;} .grid-4{grid-template-columns:repeat(3,minmax(0,1fr));}
+    .label-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;} label{font-weight:800;} .hint-text{color:var(--muted);font-size:.89rem;line-height:1.45;margin-top:4px;}
+    .tooltip{position:relative;display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;border:1px solid rgba(255,255,255,.15);color:var(--muted);font-size:.78rem;cursor:help;z-index:10000;}
+    .tooltip::after{content:attr(data-tip);position:absolute;left:50%;top:calc(100% + 10px);transform:translateX(-50%);width:min(320px,85vw);background:#111a36;color:var(--text);border:1px solid rgba(255,255,255,.2);border-radius:14px;padding:10px 12px;font-size:.82rem;line-height:1.45;box-shadow:var(--shadow);opacity:0;visibility:hidden;transition:.16s ease;z-index:10001;pointer-events:none;} .tooltip:hover::after,.tooltip:focus::after{opacity:1;visibility:visible;}
+    input[type="number"],select{width:100%;padding:11px 12px;border-radius:14px;border:1px solid rgba(255,255,255,.11);background:#0f1a35;color:var(--text);outline:none;}
+    input[type="range"]{width:100%;accent-color:var(--blue);cursor:pointer;background:transparent;}
+ input[type="number"]:focus,select:focus{border-color:rgba(125,176,255,.62);box-shadow:0 0 0 3px rgba(125,176,255,.14);}
+    button{appearance:none;border:0;cursor:pointer;border-radius:15px;padding:11px 16px;font-weight:800;transition:.18s ease;} .btn-primary{color:white;background:linear-gradient(135deg,var(--blue),var(--blue2));box-shadow:0 12px 28px rgba(125,176,255,.22);} .btn-primary:hover{transform:translateY(-1px);} .btn-secondary{color:var(--text);background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.08);} .btn-secondary:hover{background:rgba(255,255,255,.11);} .btn-disabled{opacity:.5;cursor:not-allowed;} .btn-row{display:flex;gap:10px;flex-wrap:wrap;}
+    .table-wrap{overflow:auto;border-radius:18px;border:1px solid rgba(255,255,255,.08);} table{width:100%;border-collapse:collapse;min-width:520px;} th,td{border:1px solid rgba(255,255,255,.08);padding:8px 10px;text-align:left;} th{background:rgba(255,255,255,.06);} td{background:rgba(255,255,255,.02);} .small{font-size:.88rem;color:var(--muted);}
+    .check-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px;} .check-item{display:flex;align-items:center;gap:10px;padding:12px;border-radius:16px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);} .check-item input[type="checkbox"]{width:18px;height:18px;accent-color:var(--blue);cursor:pointer;}
+    .segmented-bar{display:flex;height:18px;overflow:hidden;border-radius:999px;border:1px solid rgba(255,255,255,.09);margin:12px 0 8px;} .seg-train{background:#73abff;} .seg-val{background:#ffd166;} .seg-test{background:#86e6b2;} .legend{display:flex;gap:14px;flex-wrap:wrap;color:var(--muted);font-size:.88rem;} .dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;}
+    .algo-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;} .algo-card{padding:16px;border-radius:18px;font:inherit;text-align:left;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);} .algo-card:hover{background:rgba(255,255,255,.08);transform:translateY(-1px);} .algo-card.selected{background:linear-gradient(135deg, rgba(125,176,255,.22), rgba(159,133,255,.14));border-color:rgba(125,176,255,.4);} .algo-card .algo-name{font-weight:900;margin-bottom:6px;color:var(--blue);} .algo-card .algo-desc{color:var(--muted);line-height:1.45;font-size:.92rem;}
+    .param-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;} .param-card,.meta-box,.status-box,.metric,.note,.history-box,.bar-chart,.workflow-box{background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.09);box-shadow:var(--shadow);backdrop-filter:blur(14px) saturate(180%);} .param-card,.meta-box,.status-box,.note,.history-box,.bar-chart,.workflow-box{padding:14px;} .meta-box{color:var(--muted);line-height:1.55;} .workflow-box{margin-bottom:14px;}
+    .metric{padding:18px;overflow:visible;position:relative;z-index:2;} .metric-label{color:var(--muted);font-size:.9rem;} .metric-value{margin-top:6px;font-size:2rem;font-weight:900;letter-spacing:-.02em;} .results-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-bottom:12px;overflow:visible;}
+    .status-box{white-space:pre-line;min-height:130px;background:#0e1731;color:#dce8ff;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;line-height:1.45;} .note.error{color:#ffd5d5;background:rgba(255,154,154,.08);}
+    .progress-shell{position:relative;height:16px;border-radius:999px;border:1px solid rgba(255,255,255,.08);overflow:hidden;background:rgba(255,255,255,.05);margin-top:12px;} .progress-bar{height:100%;width:0%;background:linear-gradient(90deg,var(--blue),var(--blue2));transition:width .3s ease;} .progress-text{margin-top:8px;color:var(--muted);font-size:.9rem;}
+    .bar-chart h4,.history-box h4,.workflow-box h4{margin:0 0 10px;font-size:1rem;} .bar-row{margin-bottom:12px;} .bar-label{display:flex;justify-content:space-between;color:var(--muted);font-size:.88rem;margin-bottom:5px;} .bar-track{height:16px;border-radius:999px;overflow:hidden;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);} .bar-fill{height:100%;width:0%;transition:width .5s ease;} .bar-fill.val{background:#ffd166;} .bar-fill.test{background:#86e6b2;}
+    .history-row-best td{background: rgba(240,199,94,.12) !important; border-color: rgba(240,199,94,.28);} .best-badge{display:inline-block;padding:2px 8px;border-radius:999px;background:rgba(240,199,94,.18);border:1px solid rgba(240,199,94,.35);color:#ffe79f;font-size:.78rem;font-weight:700;}
+    .step7-disabled{opacity:.55;} .step7-disabled .interactive *{pointer-events:none;} .badge{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;background:rgba(125,176,255,.16);color:var(--text);font-size:.82rem;border:1px solid rgba(125,176,255,.28);}
+    .kicker{display:inline-block;margin-bottom:10px;padding:6px 10px;border-radius:999px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.08);font-size:.8rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;}
+    @media (max-width:1100px){.app{grid-template-columns:1fr;}.sidebar{position:relative;height:auto;border-right:0;border-bottom:1px solid rgba(255,255,255,.08);}} @media (max-width:900px){.main{padding:16px;}.sidebar{padding:16px;}.grid-4,.grid-3,.grid-2,.algo-grid,.results-grid{grid-template-columns:1fr;} table{min-width:480px;}}
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand glass">
+        <h1>Machine Learning Workflow</h1>
+        <p>Training, Validierung und Test eines Klassifikators.</p>
+      </div>
+      <div class="menu-title">Navigation</div>
+      <nav class="step-menu" id="stepMenu">
+        <a class="step-link active" href="#step1"><span class="idx">Schritt 1</span><span class="title">Datensatz</span><span class="hint">Datensatz laden + Vorschau</span></a>
+      </nav>
+      <div class="sidebar-group glass">
+        <div class="sidebar-group-title">Iterativer Trainingszyklus</div>
+        <nav class="step-menu">
+          <a class="step-link" href="#step2"><span class="idx">Schritt 2</span><span class="title">Features</span><span class="hint">Merkmale auswählen</span></a>
+          <a class="step-link" href="#step3"><span class="idx">Schritt 3</span><span class="title">Split</span><span class="hint">Aufteien in Train / Validation / Test</span></a>
+          <a class="step-link" href="#step4"><span class="idx">Schritt 4</span><span class="title">Algorithmus</span><span class="hint">Klassifikator wählen</span></a>
+          <a class="step-link" href="#step5"><span class="idx">Schritt 5</span><span class="title">Hyperparameter</span><span class="hint">Stellschrauben anpassen</span></a>
+          <a class="step-link" href="#step6"><span class="idx">Schritt 6</span><span class="title">Training + Validation</span><span class="hint">Mehrfach iterieren</span></a>
+        </nav>
+      </div>
+      <nav class="step-menu">
+        <a class="step-link" href="#step7"><span class="idx">Schritt 7</span><span class="title">Finaler Test</span><span class="hint">Erst nach Freigabe</span></a>
+      </nav>
+    </aside>
+
+    <main class="main">
+      <section class="hero">
+		<div class="kicker">Übung 3.1.3</div>
+        <h2>Erstellen eines Machine Learning Modells</h2>
+        <p>Wir wollen mit Hilfe von KI anhand chemischer Messwerte (Features) wie Alkoholgehalt, Flavonoide oder Farbintensität vorhersagen, ob ein bestimmter Wein ein Merlot, ein Chardonnay oder ein Pinot Grigio ist.<br>Um die KI zu trainieren, sie während der Erstellung des Modells immer weiter zu verbessern, und um anschließend das fertige Modell zu testen, durchlaufen wir im ML-Workflow die folgenden 7 Schritte.</p>
+      </section>
+
+      <section class="card" id="step1">
+        <h3>1. Datensatz auswählen</h3>
+        <p class="sub">Wir nutzen eine Auswahl von 178 bereits klassifizierten Weinen, mit denen wir die KI trainieren, validieren und testen wollen. Die drei Rebsorten, die erkannt werden sollen, sind <strong>Merlot, Chardonnay und Pinot Grigio</strong>.</p>
+        <div class="grid-3">
+          <div>
+            <div class="label-row"><label for="datasetSelect">Datensatz (fix)</label><span class="tooltip" tabindex="0" data-tip="Das Dataset ist absichtlich fest vorgegeben, damit die Übung sich auf den Lernworkflow konzentriert.">?</span></div>
+            <select id="datasetSelect" disabled><option>Wine Dataset (UC Irvine)</option></select>
+            <div class="hint-text">https://archive.ics.uci.edu/dataset/109/wine</div>
+            <div class="label-row" style="margin-top:14px;"><label for="targetSelect">Kennzeichen (fix)</label><span class="tooltip" tabindex="0" data-tip="Das Kennzeichen ist die Zielvariable. Hier ist es die zu bestimmende Rebsorte.">?</span></div>
+            <select id="targetSelect" disabled></select>
+            <div class="hint-text"></div>
+          </div>
+          <div></div>
+          <div>
+            <div class="label-row"><label>Datensatz-Metadaten</label><span class="tooltip" tabindex="0" data-tip="Zeigt Datensatzgröße, Anzahl der Merkmale und die in der Oberfläche verwendeten Klassenlabels.">?</span></div>
+            <div id="datasetInfo" class="meta-box"></div>
+          </div>
+        </div>
+        <div style="margin-top:16px;">
+          <div class="label-row"><label>Datenausschnitt (5 zufällige Zeilen, 6 Features)</label><span class="tooltip" tabindex="0" data-tip="Hier werden bewusst nur einige aussagekräftige Merkmale gezeigt, damit kein horizontales Scrollen nötig ist.">?</span></div>
+          <div class="table-wrap" id="previewWrap"></div>
+        </div>
+      </section>
+
+      <section class="card" id="step2">
+        <h3>2. Features festlegen</h3>
+        <p class="sub">Wähle die Merkmale aus, die das Modell als Eingaben nutzen soll, um die Rebsorte zu bestimmen. Je mehr Merkmale wir wählen, umso länger dauert der Trainingsprozess. Einige Merkmale wirken sich stärker auf die Rebsorte aus, andere weniger.</p>
+        <div class="btn-row" style="margin-bottom:12px;">
+          <button type="button" class="btn-secondary" id="selectAllBtn">Alle auswählen</button>
+          <button type="button" class="btn-secondary" id="clearAllBtn">Alle abwählen</button>
+        </div>
+        <div id="featureList" class="check-list"></div>
+        <div class="hint-text" id="featureCountInfo"></div>
+      </section>
+
+      <section class="card" id="step3">
+        <h3>3. Train / Validation / Test Split einstellen</h3>
+        <p class="sub">Das Modell lernt zunächst auf dem Training-Set. Mit den Validierungsdaten wird es verbessert. Die Testdaten nutzen wir erst in Schritt 7. Da das Modell die Testdaten dann noch nicht kennt, sind sie für die finale, unabhängige Bewertung reserviert. Die drei Werte werden automatisch so nachgeführt, dass sie zusammen immer genau <strong>100 %</strong> ergeben.</p>
+        <div class="grid-4">
+          <div>
+            <div class="label-row"><label for="trainPercent">Training (%)</label><span class="tooltip" tabindex="0" data-tip="Wenn du diesen Wert änderst, werden die anderen beiden automatisch angepasst. Die Summe bleibt immer 100 %.">?</span></div>
+            <input id="trainSlider" type="range" min="0" max="100" step="1" value="60">
+            <input id="trainPercent" type="number" min="0" max="100" step="1" value="60" style="margin-top:8px;">
+          </div>
+          <div>
+            <div class="label-row"><label for="valPercent">Validation (%)</label><span class="tooltip" tabindex="0" data-tip="Auch hier gilt: Änderungen werden automatisch auf die übrigen Anteile verteilt, sodass insgesamt immer 100 % erhalten bleiben.">?</span></div>
+            <input id="valSlider" type="range" min="0" max="100" step="1" value="20">
+            <input id="valPercent" type="number" min="0" max="100" step="1" value="20" style="margin-top:8px;">
+          </div>
+          <div>
+            <div class="label-row"><label for="testPercent">Test (%)</label><span class="tooltip" tabindex="0" data-tip="Der Test bleibt für Schritt 7 reserviert. Der Prozentwert wird beim Ändern eines anderen Felds automatisch passend mit angepasst.">?</span></div>
+            <input id="testSlider" type="range" min="0" max="100" step="1" value="20">
+            <input id="testPercent" type="number" min="0" max="100" step="1" value="20" style="margin-top:8px;">
+          </div>
+        </div>
+        <div style="margin-top:12px; display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+          <label style="display:flex; align-items:center; gap:8px; font-weight:700;"><input id="shuffleInput" type="checkbox" checked> Daten vor dem Split mischen</label>
+        </div>
+        <div class="segmented-bar"><div id="trainBar" class="seg-train" style="width:60%"></div><div id="valBar" class="seg-val" style="width:20%"></div><div id="testBar" class="seg-test" style="width:20%"></div></div>
+        <div class="legend"><span><span class="dot" style="background:#73abff"></span>Training</span><span><span class="dot" style="background:#ffd166"></span>Validation</span><span><span class="dot" style="background:#86e6b2"></span>Test (gesperrt bis Schritt 7)</span></div>
+        <div class="hint-text" id="splitInfo"></div>
+      </section>
+
+      <section class="card" id="step4">
+        <h3>4. Algorithmus auswählen</h3>
+        <p class="sub">Wähle eines von drei einfachen Klassifikationsverfahren. Nach jedem Validierungslauf kannst du wieder hierher zurückkehren und die Modellwahl ändern.</p>
+        <div id="algoList" class="algo-grid"></div>
+      </section>
+
+      <section class="card" id="step5">
+        <h3>5. Einstellungen des Algorithmus anpassen</h3>
+        <p class="sub">Passe die Konfiguration an, starte einen neuen Lauf und vergleiche anschließend die Genauigkeit mit Hilfe der Validierungsdaten.</p>
+        <div id="paramList" class="param-grid"></div>
+      </section>
+
+      <section class="card" id="step6">
+        <h3>6. Training starten und Modell bewerten</h3>
+        <p class="sub"><strong>Die Trainingsdaten kennt das Modell.</strong> Mit den <strong>Validierungsdaten wird es verbessert</strong>: So prüfst du nach jedem Lauf, ob deine Konfiguration besser geworden ist. Danach kannst du wieder zu Schritt 2–5 zurückgehen, Einstellungen ändern und einen neuen Lauf starten.<br><strong>Die Testdaten kennt das Modell nicht.</strong> Deshalb dürfen sie erst ganz am Ende eingesetzt werden – sonst wäre die finale Bewertung nicht mehr unabhängig.</p>
+        <div class="btn-row">
+          <button type="button" class="btn-primary" id="trainBtn">Training + Validation starten</button>
+          <button type="button" class="btn-secondary" id="resetBtn">Reset auf Standardwerte</button>
+        </div>
+        <div class="progress-shell"><div id="progressBar" class="progress-bar"></div></div>
+        <div id="progressText" class="progress-text">Noch kein Training gestartet.</div>
+        <div id="statusBox" class="status-box" style="margin-top:12px;">Bereit.</div>
+        <div class="results-grid" style="margin-top:14px;">
+          <div class="metric"><div class="label-row"><div class="metric-label">Aktuelle Validation Accuracy</div><span class="tooltip" tabindex="0" data-tip="Für die Validierungsdaten wird das Modell befragt. Die vom Modell vorhergesagte Rebsorte wird mit der im Validierungsdatensatz vermerkten Rebsorte verglichen. Die Accuracy gibt den Anteil der korrekten Vorhersagen wieder.">?</span></div><div class="metric-value" id="valAccCurrent">–</div></div>
+          <div class="metric"><div class="metric-label">Bester Validation-Lauf</div><div class="metric-value" id="bestValOverall">–</div></div>
+        </div>
+        <div class="bar-chart" style="margin-bottom:14px;">
+          <h4>Validation Accuracy (aktueller Lauf)</h4>
+          <div class="bar-row"><div class="bar-label"><span>Validation</span><span id="barValCurrent">–</span></div><div class="bar-track"><div id="chartValCurrent" class="bar-fill val"></div></div></div>
+        </div>
+        <div class="history-box">
+          <h4>Run-History (nur Validation)</h4>
+          <div class="small" style="margin-bottom:8px;">Der beste Validation-Lauf wird farblich hervorgehoben. Zusätzlich kannst du hier den Lauf auswählen, der als Modell übernommen werden soll.</div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>#</th><th>Algorithmus</th><th>Features</th><th>Split</th><th>Validation</th><th>Auswählen</th><th>Final gewählt?</th></tr></thead>
+              <tbody id="historyBody"><tr><td colspan="7">Noch keine Läufe vorhanden.</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="btn-row" style="margin-top:14px;">
+          <button type="button" class="btn-secondary btn-disabled" id="promoteBtn" disabled>Modell übernehmen</button>
+        </div>
+      </section>
+
+      <section class="card step7-disabled" id="step7">
+        <h3>7. Finalen Test durchführen</h3>
+        <div style="margin:12px 0 12px;" id="step7Gate"><span class="badge">Schritt 7 ist noch gesperrt</span></div>
+        <p class="sub">Erst wenn du in Schritt 6 ein Modell explizit übernommen hast, wird dieser Schritt freigeschaltet. Mit dem Test-Set wird dann die finale Genauigkeit berechnet. Dabei wird die Vorhersage des Modells mit dem tatsächlichen Wert aus den Testdaten verglichen. Der Anteil korrekter Vorhersagen ist die Genauigkeit. Weil das Modell diese Daten vorher nie gesehen hat, ist die Aussagekraft dieser Zahl höher.</p>
+        <div class="interactive">
+          <div class="btn-row" style="margin-bottom:12px;">
+            <button type="button" class="btn-primary btn-disabled" id="evaluateBtn" disabled>Finale Bewertung mit Testdaten durchführen</button>
+          </div>
+          <div class="results-grid">
+            <div class="metric"><div class="metric-label">Validation Accuracy (gewählte Konfiguration)</div><div class="metric-value" id="finalValAcc">–</div></div>
+            <div class="metric"><div class="metric-label">Test Accuracy (final)</div><div class="metric-value" id="finalTestAcc">–</div></div>
+          </div>
+          <div class="grid-2">
+            <div class="bar-chart">
+              <h4>Validation vs. Test</h4>
+              <div class="bar-row"><div class="bar-label"><span>Validation</span><span id="barValFinal">–</span></div><div class="bar-track"><div id="chartValFinal" class="bar-fill val"></div></div></div>
+              <div class="bar-row"><div class="bar-label"><span>Test</span><span id="barTestFinal">–</span></div><div class="bar-track"><div id="chartTestFinal" class="bar-fill test"></div></div></div>
+            </div>
+            <div>
+              <div class="label-row"><label>Interpretation</label><span class="tooltip" tabindex="0" data-tip="Hier kannst du besprechen, ob die Test Accuracy die mit Validation gewonnene Erwartung bestätigt oder ob ein deutlicher Abfall sichtbar wird.">?</span></div>
+              <div id="interpretationBox" class="note">Noch keine finale Testbewertung durchgeführt.</div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const DATA = {"featureNames": ["alcohol", "malic_acid", "ash", "alcalinity_of_ash", "magnesium", "total_phenols", "flavanoids", "nonflavanoid_phenols", "proanthocyanins", "color_intensity", "hue", "od280/od315_of_diluted_wines", "proline"], "featureNamesDe": ["Alkohol", "Apfelsäure", "Asche", "Alkalität der Asche", "Magnesium", "Gesamtphenole", "Flavonoide", "Nichtflavonoide Phenole", "Proanthocyanidine", "Farbintensität", "Farbton", "Verdünnung", "Prolin"], "targetName": "Rebsorte", "targetNames": ["Merlot", "Chardonnay", "Pinot Grigio"], "targetNamesSource": ["class_0", "class_1", "class_2"], "X": [[14.23, 1.71, 2.43, 15.6, 127.0, 2.8, 3.06, 0.28, 2.29, 5.64, 1.04, 3.92, 1065.0], [13.2, 1.78, 2.14, 11.2, 100.0, 2.65, 2.76, 0.26, 1.28, 4.38, 1.05, 3.4, 1050.0], [13.16, 2.36, 2.67, 18.6, 101.0, 2.8, 3.24, 0.3, 2.81, 5.68, 1.03, 3.17, 1185.0], [14.37, 1.95, 2.5, 16.8, 113.0, 3.85, 3.49, 0.24, 2.18, 7.8, 0.86, 3.45, 1480.0], [13.24, 2.59, 2.87, 21.0, 118.0, 2.8, 2.69, 0.39, 1.82, 4.32, 1.04, 2.93, 735.0], [14.2, 1.76, 2.45, 15.2, 112.0, 3.27, 3.39, 0.34, 1.97, 6.75, 1.05, 2.85, 1450.0], [14.39, 1.87, 2.45, 14.6, 96.0, 2.5, 2.52, 0.3, 1.98, 5.25, 1.02, 3.58, 1290.0], [14.06, 2.15, 2.61, 17.6, 121.0, 2.6, 2.51, 0.31, 1.25, 5.05, 1.06, 3.58, 1295.0], [14.83, 1.64, 2.17, 14.0, 97.0, 2.8, 2.98, 0.29, 1.98, 5.2, 1.08, 2.85, 1045.0], [13.86, 1.35, 2.27, 16.0, 98.0, 2.98, 3.15, 0.22, 1.85, 7.22, 1.01, 3.55, 1045.0], [14.1, 2.16, 2.3, 18.0, 105.0, 2.95, 3.32, 0.22, 2.38, 5.75, 1.25, 3.17, 1510.0], [14.12, 1.48, 2.32, 16.8, 95.0, 2.2, 2.43, 0.26, 1.57, 5.0, 1.17, 2.82, 1280.0], [13.75, 1.73, 2.41, 16.0, 89.0, 2.6, 2.76, 0.29, 1.81, 5.6, 1.15, 2.9, 1320.0], [14.75, 1.73, 2.39, 11.4, 91.0, 3.1, 3.69, 0.43, 2.81, 5.4, 1.25, 2.73, 1150.0], [14.38, 1.87, 2.38, 12.0, 102.0, 3.3, 3.64, 0.29, 2.96, 7.5, 1.2, 3.0, 1547.0], [13.63, 1.81, 2.7, 17.2, 112.0, 2.85, 2.91, 0.3, 1.46, 7.3, 1.28, 2.88, 1310.0], [14.3, 1.92, 2.72, 20.0, 120.0, 2.8, 3.14, 0.33, 1.97, 6.2, 1.07, 2.65, 1280.0], [13.83, 1.57, 2.62, 20.0, 115.0, 2.95, 3.4, 0.4, 1.72, 6.6, 1.13, 2.57, 1130.0], [14.19, 1.59, 2.48, 16.5, 108.0, 3.3, 3.93, 0.32, 1.86, 8.7, 1.23, 2.82, 1680.0], [13.64, 3.1, 2.56, 15.2, 116.0, 2.7, 3.03, 0.17, 1.66, 5.1, 0.96, 3.36, 845.0], [14.06, 1.63, 2.28, 16.0, 126.0, 3.0, 3.17, 0.24, 2.1, 5.65, 1.09, 3.71, 780.0], [12.93, 3.8, 2.65, 18.6, 102.0, 2.41, 2.41, 0.25, 1.98, 4.5, 1.03, 3.52, 770.0], [13.71, 1.86, 2.36, 16.6, 101.0, 2.61, 2.88, 0.27, 1.69, 3.8, 1.11, 4.0, 1035.0], [12.85, 1.6, 2.52, 17.8, 95.0, 2.48, 2.37, 0.26, 1.46, 3.93, 1.09, 3.63, 1015.0], [13.5, 1.81, 2.61, 20.0, 96.0, 2.53, 2.61, 0.28, 1.66, 3.52, 1.12, 3.82, 845.0], [13.05, 2.05, 3.22, 25.0, 124.0, 2.63, 2.68, 0.47, 1.92, 3.58, 1.13, 3.2, 830.0], [13.39, 1.77, 2.62, 16.1, 93.0, 2.85, 2.94, 0.34, 1.45, 4.8, 0.92, 3.22, 1195.0], [13.3, 1.72, 2.14, 17.0, 94.0, 2.4, 2.19, 0.27, 1.35, 3.95, 1.02, 2.77, 1285.0], [13.87, 1.9, 2.8, 19.4, 107.0, 2.95, 2.97, 0.37, 1.76, 4.5, 1.25, 3.4, 915.0], [14.02, 1.68, 2.21, 16.0, 96.0, 2.65, 2.33, 0.26, 1.98, 4.7, 1.04, 3.59, 1035.0], [13.73, 1.5, 2.7, 22.5, 101.0, 3.0, 3.25, 0.29, 2.38, 5.7, 1.19, 2.71, 1285.0], [13.58, 1.66, 2.36, 19.1, 106.0, 2.86, 3.19, 0.22, 1.95, 6.9, 1.09, 2.88, 1515.0], [13.68, 1.83, 2.36, 17.2, 104.0, 2.42, 2.69, 0.42, 1.97, 3.84, 1.23, 2.87, 990.0], [13.76, 1.53, 2.7, 19.5, 132.0, 2.95, 2.74, 0.5, 1.35, 5.4, 1.25, 3.0, 1235.0], [13.51, 1.8, 2.65, 19.0, 110.0, 2.35, 2.53, 0.29, 1.54, 4.2, 1.1, 2.87, 1095.0], [13.48, 1.81, 2.41, 20.5, 100.0, 2.7, 2.98, 0.26, 1.86, 5.1, 1.04, 3.47, 920.0], [13.28, 1.64, 2.84, 15.5, 110.0, 2.6, 2.68, 0.34, 1.36, 4.6, 1.09, 2.78, 880.0], [13.05, 1.65, 2.55, 18.0, 98.0, 2.45, 2.43, 0.29, 1.44, 4.25, 1.12, 2.51, 1105.0], [13.07, 1.5, 2.1, 15.5, 98.0, 2.4, 2.64, 0.28, 1.37, 3.7, 1.18, 2.69, 1020.0], [14.22, 3.99, 2.51, 13.2, 128.0, 3.0, 3.04, 0.2, 2.08, 5.1, 0.89, 3.53, 760.0], [13.56, 1.71, 2.31, 16.2, 117.0, 3.15, 3.29, 0.34, 2.34, 6.13, 0.95, 3.38, 795.0], [13.41, 3.84, 2.12, 18.8, 90.0, 2.45, 2.68, 0.27, 1.48, 4.28, 0.91, 3.0, 1035.0], [13.88, 1.89, 2.59, 15.0, 101.0, 3.25, 3.56, 0.17, 1.7, 5.43, 0.88, 3.56, 1095.0], [13.24, 3.98, 2.29, 17.5, 103.0, 2.64, 2.63, 0.32, 1.66, 4.36, 0.82, 3.0, 680.0], [13.05, 1.77, 2.1, 17.0, 107.0, 3.0, 3.0, 0.28, 2.03, 5.04, 0.88, 3.35, 885.0], [14.21, 4.04, 2.44, 18.9, 111.0, 2.85, 2.65, 0.3, 1.25, 5.24, 0.87, 3.33, 1080.0], [14.38, 3.59, 2.28, 16.0, 102.0, 3.25, 3.17, 0.27, 2.19, 4.9, 1.04, 3.44, 1065.0], [13.9, 1.68, 2.12, 16.0, 101.0, 3.1, 3.39, 0.21, 2.14, 6.1, 0.91, 3.33, 985.0], [14.1, 2.02, 2.4, 18.8, 103.0, 2.75, 2.92, 0.32, 2.38, 6.2, 1.07, 2.75, 1060.0], [13.94, 1.73, 2.27, 17.4, 108.0, 2.88, 3.54, 0.32, 2.08, 8.9, 1.12, 3.1, 1260.0], [13.05, 1.73, 2.04, 12.4, 92.0, 2.72, 3.27, 0.17, 2.91, 7.2, 1.12, 2.91, 1150.0], [13.83, 1.65, 2.6, 17.2, 94.0, 2.45, 2.99, 0.22, 2.29, 5.6, 1.24, 3.37, 1265.0], [13.82, 1.75, 2.42, 14.0, 111.0, 3.88, 3.74, 0.32, 1.87, 7.05, 1.01, 3.26, 1190.0], [13.77, 1.9, 2.68, 17.1, 115.0, 3.0, 2.79, 0.39, 1.68, 6.3, 1.13, 2.93, 1375.0], [13.74, 1.67, 2.25, 16.4, 118.0, 2.6, 2.9, 0.21, 1.62, 5.85, 0.92, 3.2, 1060.0], [13.56, 1.73, 2.46, 20.5, 116.0, 2.96, 2.78, 0.2, 2.45, 6.25, 0.98, 3.03, 1120.0], [14.22, 1.7, 2.3, 16.3, 118.0, 3.2, 3.0, 0.26, 2.03, 6.38, 0.94, 3.31, 970.0], [13.29, 1.97, 2.68, 16.8, 102.0, 3.0, 3.23, 0.31, 1.66, 6.0, 1.07, 2.84, 1270.0], [13.72, 1.43, 2.5, 16.7, 108.0, 3.4, 3.67, 0.19, 2.04, 6.8, 0.89, 2.87, 1285.0], [12.37, 0.94, 1.36, 10.6, 88.0, 1.98, 0.57, 0.28, 0.42, 1.95, 1.05, 1.82, 520.0], [12.33, 1.1, 2.28, 16.0, 101.0, 2.05, 1.09, 0.63, 0.41, 3.27, 1.25, 1.67, 680.0], [12.64, 1.36, 2.02, 16.8, 100.0, 2.02, 1.41, 0.53, 0.62, 5.75, 0.98, 1.59, 450.0], [13.67, 1.25, 1.92, 18.0, 94.0, 2.1, 1.79, 0.32, 0.73, 3.8, 1.23, 2.46, 630.0], [12.37, 1.13, 2.16, 19.0, 87.0, 3.5, 3.1, 0.19, 1.87, 4.45, 1.22, 2.87, 420.0], [12.17, 1.45, 2.53, 19.0, 104.0, 1.89, 1.75, 0.45, 1.03, 2.95, 1.45, 2.23, 355.0], [12.37, 1.21, 2.56, 18.1, 98.0, 2.42, 2.65, 0.37, 2.08, 4.6, 1.19, 2.3, 678.0], [13.11, 1.01, 1.7, 15.0, 78.0, 2.98, 3.18, 0.26, 2.28, 5.3, 1.12, 3.18, 502.0], [12.37, 1.17, 1.92, 19.6, 78.0, 2.11, 2.0, 0.27, 1.04, 4.68, 1.12, 3.48, 510.0], [13.34, 0.94, 2.36, 17.0, 110.0, 2.53, 1.3, 0.55, 0.42, 3.17, 1.02, 1.93, 750.0], [12.21, 1.19, 1.75, 16.8, 151.0, 1.85, 1.28, 0.14, 2.5, 2.85, 1.28, 3.07, 718.0], [12.29, 1.61, 2.21, 20.4, 103.0, 1.1, 1.02, 0.37, 1.46, 3.05, 0.906, 1.82, 870.0], [13.86, 1.51, 2.67, 25.0, 86.0, 2.95, 2.86, 0.21, 1.87, 3.38, 1.36, 3.16, 410.0], [13.49, 1.66, 2.24, 24.0, 87.0, 1.88, 1.84, 0.27, 1.03, 3.74, 0.98, 2.78, 472.0], [12.99, 1.67, 2.6, 30.0, 139.0, 3.3, 2.89, 0.21, 1.96, 3.35, 1.31, 3.5, 985.0], [11.96, 1.09, 2.3, 21.0, 101.0, 3.38, 2.14, 0.13, 1.65, 3.21, 0.99, 3.13, 886.0], [11.66, 1.88, 1.92, 16.0, 97.0, 1.61, 1.57, 0.34, 1.15, 3.8, 1.23, 2.14, 428.0], [13.03, 0.9, 1.71, 16.0, 86.0, 1.95, 2.03, 0.24, 1.46, 4.6, 1.19, 2.48, 392.0], [11.84, 2.89, 2.23, 18.0, 112.0, 1.72, 1.32, 0.43, 0.95, 2.65, 0.96, 2.52, 500.0], [12.33, 0.99, 1.95, 14.8, 136.0, 1.9, 1.85, 0.35, 2.76, 3.4, 1.06, 2.31, 750.0], [12.7, 3.87, 2.4, 23.0, 101.0, 2.83, 2.55, 0.43, 1.95, 2.57, 1.19, 3.13, 463.0], [12.0, 0.92, 2.0, 19.0, 86.0, 2.42, 2.26, 0.3, 1.43, 2.5, 1.38, 3.12, 278.0], [12.72, 1.81, 2.2, 18.8, 86.0, 2.2, 2.53, 0.26, 1.77, 3.9, 1.16, 3.14, 714.0], [12.08, 1.13, 2.51, 24.0, 78.0, 2.0, 1.58, 0.4, 1.4, 2.2, 1.31, 2.72, 630.0], [13.05, 3.86, 2.32, 22.5, 85.0, 1.65, 1.59, 0.61, 1.62, 4.8, 0.84, 2.01, 515.0], [11.84, 0.89, 2.58, 18.0, 94.0, 2.2, 2.21, 0.22, 2.35, 3.05, 0.79, 3.08, 520.0], [12.67, 0.98, 2.24, 18.0, 99.0, 2.2, 1.94, 0.3, 1.46, 2.62, 1.23, 3.16, 450.0], [12.16, 1.61, 2.31, 22.8, 90.0, 1.78, 1.69, 0.43, 1.56, 2.45, 1.33, 2.26, 495.0], [11.65, 1.67, 2.62, 26.0, 88.0, 1.92, 1.61, 0.4, 1.34, 2.6, 1.36, 3.21, 562.0], [11.64, 2.06, 2.46, 21.6, 84.0, 1.95, 1.69, 0.48, 1.35, 2.8, 1.0, 2.75, 680.0], [12.08, 1.33, 2.3, 23.6, 70.0, 2.2, 1.59, 0.42, 1.38, 1.74, 1.07, 3.21, 625.0], [12.08, 1.83, 2.32, 18.5, 81.0, 1.6, 1.5, 0.52, 1.64, 2.4, 1.08, 2.27, 480.0], [12.0, 1.51, 2.42, 22.0, 86.0, 1.45, 1.25, 0.5, 1.63, 3.6, 1.05, 2.65, 450.0], [12.69, 1.53, 2.26, 20.7, 80.0, 1.38, 1.46, 0.58, 1.62, 3.05, 0.96, 2.06, 495.0], [12.29, 2.83, 2.22, 18.0, 88.0, 2.45, 2.25, 0.25, 1.99, 2.15, 1.15, 3.3, 290.0], [11.62, 1.99, 2.28, 18.0, 98.0, 3.02, 2.26, 0.17, 1.35, 3.25, 1.16, 2.96, 345.0], [12.47, 1.52, 2.2, 19.0, 162.0, 2.5, 2.27, 0.32, 3.28, 2.6, 1.16, 2.63, 937.0], [11.81, 2.12, 2.74, 21.5, 134.0, 1.6, 0.99, 0.14, 1.56, 2.5, 0.95, 2.26, 625.0], [12.29, 1.41, 1.98, 16.0, 85.0, 2.55, 2.5, 0.29, 1.77, 2.9, 1.23, 2.74, 428.0], [12.37, 1.07, 2.1, 18.5, 88.0, 3.52, 3.75, 0.24, 1.95, 4.5, 1.04, 2.77, 660.0], [12.29, 3.17, 2.21, 18.0, 88.0, 2.85, 2.99, 0.45, 2.81, 2.3, 1.42, 2.83, 406.0], [12.08, 2.08, 1.7, 17.5, 97.0, 2.23, 2.17, 0.26, 1.4, 3.3, 1.27, 2.96, 710.0], [12.6, 1.34, 1.9, 18.5, 88.0, 1.45, 1.36, 0.29, 1.35, 2.45, 1.04, 2.77, 562.0], [12.34, 2.45, 2.46, 21.0, 98.0, 2.56, 2.11, 0.34, 1.31, 2.8, 0.8, 3.38, 438.0], [11.82, 1.72, 1.88, 19.5, 86.0, 2.5, 1.64, 0.37, 1.42, 2.06, 0.94, 2.44, 415.0], [12.51, 1.73, 1.98, 20.5, 85.0, 2.2, 1.92, 0.32, 1.48, 2.94, 1.04, 3.57, 672.0], [12.42, 2.55, 2.27, 22.0, 90.0, 1.68, 1.84, 0.66, 1.42, 2.7, 0.86, 3.3, 315.0], [12.25, 1.73, 2.12, 19.0, 80.0, 1.65, 2.03, 0.37, 1.63, 3.4, 1.0, 3.17, 510.0], [12.72, 1.75, 2.28, 22.5, 84.0, 1.38, 1.76, 0.48, 1.63, 3.3, 0.88, 2.42, 488.0], [12.22, 1.29, 1.94, 19.0, 92.0, 2.36, 2.04, 0.39, 2.08, 2.7, 0.86, 3.02, 312.0], [11.61, 1.35, 2.7, 20.0, 94.0, 2.74, 2.92, 0.29, 2.49, 2.65, 0.96, 3.26, 680.0], [11.46, 3.74, 1.82, 19.5, 107.0, 3.18, 2.58, 0.24, 3.58, 2.9, 0.75, 2.81, 562.0], [12.52, 2.43, 2.17, 21.0, 88.0, 2.55, 2.27, 0.26, 1.22, 2.0, 0.9, 2.78, 325.0], [11.76, 2.68, 2.92, 20.0, 103.0, 1.75, 2.03, 0.6, 1.05, 3.8, 1.23, 2.5, 607.0], [11.41, 0.74, 2.5, 21.0, 88.0, 2.48, 2.01, 0.42, 1.44, 3.08, 1.1, 2.31, 434.0], [12.08, 1.39, 2.5, 22.5, 84.0, 2.56, 2.29, 0.43, 1.04, 2.9, 0.93, 3.19, 385.0], [11.03, 1.51, 2.2, 21.5, 85.0, 2.46, 2.17, 0.52, 2.01, 1.9, 1.71, 2.87, 407.0], [11.82, 1.47, 1.99, 20.8, 86.0, 1.98, 1.6, 0.3, 1.53, 1.95, 0.95, 3.33, 495.0], [12.42, 1.61, 2.19, 22.5, 108.0, 2.0, 2.09, 0.34, 1.61, 2.06, 1.06, 2.96, 345.0], [12.77, 3.43, 1.98, 16.0, 80.0, 1.63, 1.25, 0.43, 0.83, 3.4, 0.7, 2.12, 372.0], [12.0, 3.43, 2.0, 19.0, 87.0, 2.0, 1.64, 0.37, 1.87, 1.28, 0.93, 3.05, 564.0], [11.45, 2.4, 2.42, 20.0, 96.0, 2.9, 2.79, 0.32, 1.83, 3.25, 0.8, 3.39, 625.0], [11.56, 2.05, 3.23, 28.5, 119.0, 3.18, 5.08, 0.47, 1.87, 6.0, 0.93, 3.69, 465.0], [12.42, 4.43, 2.73, 26.5, 102.0, 2.2, 2.13, 0.43, 1.71, 2.08, 0.92, 3.12, 365.0], [13.05, 5.8, 2.13, 21.5, 86.0, 2.62, 2.65, 0.3, 2.01, 2.6, 0.73, 3.1, 380.0], [11.87, 4.31, 2.39, 21.0, 82.0, 2.86, 3.03, 0.21, 2.91, 2.8, 0.75, 3.64, 380.0], [12.07, 2.16, 2.17, 21.0, 85.0, 2.6, 2.65, 0.37, 1.35, 2.76, 0.86, 3.28, 378.0], [12.43, 1.53, 2.29, 21.5, 86.0, 2.74, 3.15, 0.39, 1.77, 3.94, 0.69, 2.84, 352.0], [11.79, 2.13, 2.78, 28.5, 92.0, 2.13, 2.24, 0.58, 1.76, 3.0, 0.97, 2.44, 466.0], [12.37, 1.63, 2.3, 24.5, 88.0, 2.22, 2.45, 0.4, 1.9, 2.12, 0.89, 2.78, 342.0], [12.04, 4.3, 2.38, 22.0, 80.0, 2.1, 1.75, 0.42, 1.35, 2.6, 0.79, 2.57, 580.0], [12.86, 1.35, 2.32, 18.0, 122.0, 1.51, 1.25, 0.21, 0.94, 4.1, 0.76, 1.29, 630.0], [12.88, 2.99, 2.4, 20.0, 104.0, 1.3, 1.22, 0.24, 0.83, 5.4, 0.74, 1.42, 530.0], [12.81, 2.31, 2.4, 24.0, 98.0, 1.15, 1.09, 0.27, 0.83, 5.7, 0.66, 1.36, 560.0], [12.7, 3.55, 2.36, 21.5, 106.0, 1.7, 1.2, 0.17, 0.84, 5.0, 0.78, 1.29, 600.0], [12.51, 1.24, 2.25, 17.5, 85.0, 2.0, 0.58, 0.6, 1.25, 5.45, 0.75, 1.51, 650.0], [12.6, 2.46, 2.2, 18.5, 94.0, 1.62, 0.66, 0.63, 0.94, 7.1, 0.73, 1.58, 695.0], [12.25, 4.72, 2.54, 21.0, 89.0, 1.38, 0.47, 0.53, 0.8, 3.85, 0.75, 1.27, 720.0], [12.53, 5.51, 2.64, 25.0, 96.0, 1.79, 0.6, 0.63, 1.1, 5.0, 0.82, 1.69, 515.0], [13.49, 3.59, 2.19, 19.5, 88.0, 1.62, 0.48, 0.58, 0.88, 5.7, 0.81, 1.82, 580.0], [12.84, 2.96, 2.61, 24.0, 101.0, 2.32, 0.6, 0.53, 0.81, 4.92, 0.89, 2.15, 590.0], [12.93, 2.81, 2.7, 21.0, 96.0, 1.54, 0.5, 0.53, 0.75, 4.6, 0.77, 2.31, 600.0], [13.36, 2.56, 2.35, 20.0, 89.0, 1.4, 0.5, 0.37, 0.64, 5.6, 0.7, 2.47, 780.0], [13.52, 3.17, 2.72, 23.5, 97.0, 1.55, 0.52, 0.5, 0.55, 4.35, 0.89, 2.06, 520.0], [13.62, 4.95, 2.35, 20.0, 92.0, 2.0, 0.8, 0.47, 1.02, 4.4, 0.91, 2.05, 550.0], [12.25, 3.88, 2.2, 18.5, 112.0, 1.38, 0.78, 0.29, 1.14, 8.21, 0.65, 2.0, 855.0], [13.16, 3.57, 2.15, 21.0, 102.0, 1.5, 0.55, 0.43, 1.3, 4.0, 0.6, 1.68, 830.0], [13.88, 5.04, 2.23, 20.0, 80.0, 0.98, 0.34, 0.4, 0.68, 4.9, 0.58, 1.33, 415.0], [12.87, 4.61, 2.48, 21.5, 86.0, 1.7, 0.65, 0.47, 0.86, 7.65, 0.54, 1.86, 625.0], [13.32, 3.24, 2.38, 21.5, 92.0, 1.93, 0.76, 0.45, 1.25, 8.42, 0.55, 1.62, 650.0], [13.08, 3.9, 2.36, 21.5, 113.0, 1.41, 1.39, 0.34, 1.14, 9.4, 0.57, 1.33, 550.0], [13.5, 3.12, 2.62, 24.0, 123.0, 1.4, 1.57, 0.22, 1.25, 8.6, 0.59, 1.3, 500.0], [12.79, 2.67, 2.48, 22.0, 112.0, 1.48, 1.36, 0.24, 1.26, 10.8, 0.48, 1.47, 480.0], [13.11, 1.9, 2.75, 25.5, 116.0, 2.2, 1.28, 0.26, 1.56, 7.1, 0.61, 1.33, 425.0], [13.23, 3.3, 2.28, 18.5, 98.0, 1.8, 0.83, 0.61, 1.87, 10.52, 0.56, 1.51, 675.0], [12.58, 1.29, 2.1, 20.0, 103.0, 1.48, 0.58, 0.53, 1.4, 7.6, 0.58, 1.55, 640.0], [13.17, 5.19, 2.32, 22.0, 93.0, 1.74, 0.63, 0.61, 1.55, 7.9, 0.6, 1.48, 725.0], [13.84, 4.12, 2.38, 19.5, 89.0, 1.8, 0.83, 0.48, 1.56, 9.01, 0.57, 1.64, 480.0], [12.45, 3.03, 2.64, 27.0, 97.0, 1.9, 0.58, 0.63, 1.14, 7.5, 0.67, 1.73, 880.0], [14.34, 1.68, 2.7, 25.0, 98.0, 2.8, 1.31, 0.53, 2.7, 13.0, 0.57, 1.96, 660.0], [13.48, 1.67, 2.64, 22.5, 89.0, 2.6, 1.1, 0.52, 2.29, 11.75, 0.57, 1.78, 620.0], [12.36, 3.83, 2.38, 21.0, 88.0, 2.3, 0.92, 0.5, 1.04, 7.65, 0.56, 1.58, 520.0], [13.69, 3.26, 2.54, 20.0, 107.0, 1.83, 0.56, 0.5, 0.8, 5.88, 0.96, 1.82, 680.0], [12.85, 3.27, 2.58, 22.0, 106.0, 1.65, 0.6, 0.6, 0.96, 5.58, 0.87, 2.11, 570.0], [12.96, 3.45, 2.35, 18.5, 106.0, 1.39, 0.7, 0.4, 0.94, 5.28, 0.68, 1.75, 675.0], [13.78, 2.76, 2.3, 22.0, 90.0, 1.35, 0.68, 0.41, 1.03, 9.58, 0.7, 1.68, 615.0], [13.73, 4.36, 2.26, 22.5, 88.0, 1.28, 0.47, 0.52, 1.15, 6.62, 0.78, 1.75, 520.0], [13.45, 3.7, 2.6, 23.0, 111.0, 1.7, 0.92, 0.43, 1.46, 10.68, 0.85, 1.56, 695.0], [12.82, 3.37, 2.3, 19.5, 88.0, 1.48, 0.66, 0.4, 0.97, 10.26, 0.72, 1.75, 685.0], [13.58, 2.58, 2.69, 24.5, 105.0, 1.55, 0.84, 0.39, 1.54, 8.66, 0.74, 1.8, 750.0], [13.4, 4.6, 2.86, 25.0, 112.0, 1.98, 0.96, 0.27, 1.11, 8.5, 0.67, 1.92, 630.0], [12.2, 3.03, 2.32, 19.0, 96.0, 1.25, 0.49, 0.4, 0.73, 5.5, 0.66, 1.83, 510.0], [12.77, 2.39, 2.28, 19.5, 86.0, 1.39, 0.51, 0.48, 0.64, 9.899999, 0.57, 1.63, 470.0], [14.16, 2.51, 2.48, 20.0, 91.0, 1.68, 0.7, 0.44, 1.24, 9.7, 0.62, 1.71, 660.0], [13.71, 5.65, 2.45, 20.5, 95.0, 1.68, 0.61, 0.52, 1.06, 7.7, 0.64, 1.74, 740.0], [13.4, 3.91, 2.48, 23.0, 102.0, 1.8, 0.75, 0.43, 1.41, 7.3, 0.7, 1.56, 750.0], [13.27, 4.28, 2.26, 20.0, 120.0, 1.59, 0.69, 0.43, 1.35, 10.2, 0.59, 1.56, 835.0], [13.17, 2.59, 2.37, 20.0, 120.0, 1.65, 0.68, 0.53, 1.46, 9.3, 0.6, 1.62, 840.0], [14.13, 4.1, 2.74, 24.5, 96.0, 2.05, 0.76, 0.56, 1.35, 9.2, 0.61, 1.6, 560.0]], "y": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2], "previewIndices": [0, 1, 6, 9, 10, 11], "previewNamesDe": ["Alkohol", "Apfelsäure", "Flavonoide", "Farbintensität", "Farbton", "Verdünnung"]};
+    const state = {
+      selectedFeatures: [],
+      algorithm: 'knn',
+      params: { knn: { k: 5 }, logreg: { learningRate: 0.1, epochs: 250, lambda: 0.01 }, tree: { maxDepth: 4, minSamplesSplit: 4 } },
+      lastRun: null, finalSelection: null, runHistory: [], selectedRunIndex: null, trainingInProgress: false
+    };
+    function $(id) { return document.getElementById(id); }
+    function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
+
+    function setDatasetInfo() {
+      $('datasetInfo').innerHTML = 'Zeilen: <strong>' + DATA.X.length + '</strong><br>Merkmale: <strong>' + DATA.featureNames.length + '</strong><br>Klassen: <strong>' + DATA.targetNames.join(', ') + '</strong>';
+      $('targetSelect').innerHTML = DATA.targetNames.map(name => '<option>' + "Rebsorte" + '</option>').join('');
+      renderPreview();
+    }
+    function pickPreviewRows() {
+      const byClass = {};
+      DATA.y.forEach((cls, idx) => {
+        if (!byClass[cls]) byClass[cls] = [];
+        byClass[cls].push(idx);
+      });
+      const classes = Object.keys(byClass);
+      const chosen = [];
+      // ensure at least two classes are represented
+      const shuffledClasses = classes.slice().sort(() => Math.random() - 0.5);
+      shuffledClasses.slice(0, 2).forEach(cls => {
+        const arr = byClass[cls];
+        chosen.push(arr[Math.floor(Math.random() * arr.length)]);
+      });
+      // fill up to 5 unique random rows
+      while (chosen.length < 5) {
+        const idx = Math.floor(Math.random() * DATA.X.length);
+        if (!chosen.includes(idx)) chosen.push(idx);
+      }
+      return chosen.sort((a, b) => a - b);
+    }
+    function renderPreview() {
+      const rowIndices = pickPreviewRows(); let html = '<table><thead><tr>';
+      DATA.previewNamesDe.forEach(name => html += '<th>' + name + '</th>'); html += '<th>Rebsorte</th></tr></thead><tbody>';
+      rowIndices.forEach((rowIdx) => { const row = DATA.X[rowIdx]; html += '<tr>'; DATA.previewIndices.forEach(colIdx => { html += '<td>' + Number(row[colIdx]).toFixed(2) + '</td>'; }); html += '<td>' + DATA.targetNames[DATA.y[rowIdx]] + '</td></tr>'; });
+      html += '</tbody></table>'; $('previewWrap').innerHTML = html;
+    }
+    function renderFeatures() {
+      const wrap = $('featureList'); wrap.innerHTML = '';
+      DATA.featureNamesDe.forEach((nameDe, idx) => {
+        const nameEn = DATA.featureNames[idx]; const item = document.createElement('label'); item.className = 'check-item';
+        const checkbox = document.createElement('input'); checkbox.type = 'checkbox'; checkbox.checked = state.selectedFeatures.indexOf(nameEn) >= 0; checkbox.dataset.feature = nameEn;
+        checkbox.addEventListener('change', () => { state.selectedFeatures = Array.from(document.querySelectorAll('#featureList input:checked')).map(el => el.dataset.feature); updateFeatureCount(); });
+        const span = document.createElement('span'); span.innerHTML = '<strong>' + nameDe + '</strong>';
+        item.appendChild(checkbox); item.appendChild(span); wrap.appendChild(item);
+      }); updateFeatureCount();
+    }
+    function updateFeatureCount() { const n = state.selectedFeatures.length; $('featureCountInfo').textContent = n === 0 ? 'Achtung: Es ist aktuell kein Feature ausgewählt.' : n + ' von ' + DATA.featureNames.length + ' Features ausgewählt.'; }
+    function setSplitFields(train, val, test) { $('trainPercent').value = String(train); $('valPercent').value = String(val); $('testPercent').value = String(test); if($('trainSlider')) $('trainSlider').value = String(train); if($('valSlider')) $('valSlider').value = String(val); if($('testSlider')) $('testSlider').value = String(test); updateSplitUI(); }
+    function normalizeRemainder(edited) {
+      const vals = {
+        trainPercent: Number((edited === 'trainPercent' && $('trainSlider')) ? $('trainSlider').value || $('trainPercent').value : $('trainPercent').value || 0),
+        valPercent: Number((edited === 'valPercent' && $('valSlider')) ? $('valSlider').value || $('valPercent').value : $('valPercent').value || 0),
+        testPercent: Number((edited === 'testPercent' && $('testSlider')) ? $('testSlider').value || $('testPercent').value : $('testPercent').value || 0)
+      };
+      vals[edited] = clamp(Math.round(vals[edited]), 0, 100);
+      const others = ['trainPercent','valPercent','testPercent'].filter(id => id !== edited);
+      const remainder = 100 - vals[edited];
+      const o1 = Math.max(0, vals[others[0]] || 0);
+      const o2 = Math.max(0, vals[others[1]] || 0);
+      const sum = o1 + o2;
+      if (remainder <= 0) {
+        vals[others[0]] = 0;
+        vals[others[1]] = 0;
+      } else if (sum === 0) {
+        vals[others[0]] = Math.floor(remainder / 2);
+        vals[others[1]] = remainder - vals[others[0]];
+      } else {
+        vals[others[0]] = Math.round(remainder * (o1 / sum));
+        vals[others[1]] = remainder - vals[others[0]];
+      }
+      setSplitFields(vals.trainPercent, vals.valPercent, vals.testPercent);
+    }
+    function updateSplitUI() {
+      const train = Number($('trainPercent').value || 0), val = Number($('valPercent').value || 0), test = Number($('testPercent').value || 0), sum = train + val + test;
+      $('trainBar').style.width = Math.max(0, train) + '%'; $('valBar').style.width = Math.max(0, val) + '%'; $('testBar').style.width = Math.max(0, test) + '%';
+      $('splitInfo').textContent = 'Aufteilung: Training ' + train + ' %, Validation ' + val + ' %, Test ' + test + ' % (Summe: ' + sum + ' %).';
+    }
+    function renderAlgorithms() {
+      const algos = [
+        { key: 'tree', title: 'Decision Tree', desc: 'Trifft schrittweise Wenn-Dann-Entscheidungen entlang von Grenzwerten einzelner Merkmale.' },
+        { key: 'knn', title: 'k-Nearest Neighbors', desc: 'Ordnet einen Wein der Klasse jener ähnlichen Nachbarn zu, die im Merkmalsraum am nächsten liegen.' },
+        { key: 'logreg', title: 'Logistic Regression', desc: 'Berechnet lineare Entscheidungsgrenzen und schätzt Klassenwahrscheinlichkeiten.' }
+      ];
+      const wrap = $('algoList'); wrap.innerHTML = '';
+      algos.forEach(algo => { const card = document.createElement('button'); card.type = 'button'; card.className = 'algo-card' + (state.algorithm === algo.key ? ' selected' : ''); card.innerHTML = '<div class="algo-name">' + algo.title + '</div><div class="algo-desc">' + algo.desc + '</div>'; card.addEventListener('click', () => { state.algorithm = algo.key; renderAlgorithms(); renderParams(); }); wrap.appendChild(card); });
+    }
+    function paramCard(labelText, inputHtml, explanation, effect) { return '<div class="param-card"><div class="label-row"><label>' + labelText + '</label></div>' + inputHtml + '<div class="hint-text"><strong>Wozu dient das?</strong> ' + explanation + '</div><div class="hint-text"><strong>Typischer Effekt:</strong> ' + effect + '</div></div>'; }
+    function renderParams() {
+      const wrap = $('paramList'); let html = '';
+      if (state.algorithm === 'knn') {
+        html += paramCard('Anzahl ähnlicher Nachbarn', '<input id="param_knn_k" type="number" min="1" max="25" step="1" value="' + state.params.knn.k + '">', 'Legt fest, wie viele ähnliche Trainingsbeispiele bei der Entscheidung mitreden dürfen.', 'Kleine Werte reagieren sensibler auf lokale Muster; größere Werte glätten stärker.');
+      } else if (state.algorithm === 'logreg') {
+        html += paramCard('Lerngeschwindigkeit', '<input id="param_lr" type="number" min="0.001" max="1" step="0.001" value="' + state.params.logreg.learningRate + '">', 'Bestimmt, wie große Lernschritte das Modell pro Durchlauf macht.', 'Zu groß kann instabil werden; zu klein lernt sehr langsam.');
+        html += paramCard('Anzahl Trainingsrunden', '<input id="param_epochs" type="number" min="50" max="1000" step="10" value="' + state.params.logreg.epochs + '">', 'Gibt an, wie oft das Modell die Trainingsdaten komplett durchläuft.', 'Mehr Runden können helfen – zu viele bringen oft kaum noch Zusatznutzen.');
+        html += paramCard('Stärke der Vereinfachung', '<input id="param_lambda" type="number" min="0" max="1" step="0.001" value="' + state.params.logreg.lambda + '">', 'Bremst extrem große Gewichte und hält das Modell eher einfach.', 'Mehr Vereinfachung reduziert Überanpassung, zu viel davon kann aber Leistung kosten.');
+      } else {
+        html += paramCard('Maximale Baumtiefe', '<input id="param_depth" type="number" min="1" max="10" step="1" value="' + state.params.tree.maxDepth + '">', 'Legt fest, wie viele Entscheidungsebenen der Baum maximal aufbauen darf.', 'Tiefere Bäume merken sich mehr Details; flachere bleiben einfacher und robuster.');
+        html += paramCard('Mindestfälle für neue Regel', '<input id="param_min_split" type="number" min="2" max="20" step="1" value="' + state.params.tree.minSamplesSplit + '">', 'Bestimmt, wie viele Fälle mindestens vorhanden sein müssen, bevor der Baum weiter aufteilt.', 'Höhere Werte machen den Baum vorsichtiger und oft weniger detailverliebt.');
+      }
+      wrap.innerHTML = html; Array.from(wrap.querySelectorAll('input')).forEach(inp => inp.addEventListener('input', syncParamsFromUI));
+    }
+    function syncParamsFromUI() {
+      if (state.algorithm === 'knn' && $('param_knn_k')) state.params.knn.k = Math.max(1, Number($('param_knn_k').value) || 1);
+      if (state.algorithm === 'logreg') { if ($('param_lr')) state.params.logreg.learningRate = Number($('param_lr').value) || 0.1; if ($('param_epochs')) state.params.logreg.epochs = Number($('param_epochs').value) || 250; if ($('param_lambda')) state.params.logreg.lambda = Number($('param_lambda').value) || 0.01; }
+      if (state.algorithm === 'tree') { if ($('param_depth')) state.params.tree.maxDepth = Number($('param_depth').value) || 4; if ($('param_min_split')) state.params.tree.minSamplesSplit = Number($('param_min_split').value) || 4; }
+    }
+    function setPromoteEnabled(enabled) { $('promoteBtn').disabled = !enabled; $('promoteBtn').classList.toggle('btn-disabled', !enabled); }
+    function setEvaluateEnabled(enabled) { $('evaluateBtn').disabled = !enabled; $('evaluateBtn').classList.toggle('btn-disabled', !enabled); }
+    function status(text) { $('statusBox').textContent = text; }
+    function validateSettings() { const train = Number($('trainPercent').value), val = Number($('valPercent').value), test = Number($('testPercent').value); if (train + val + test !== 100) return 'Die Aufteilung muss in Summe genau 100 % ergeben.'; if (state.selectedFeatures.length === 0) return 'Bitte mindestens ein Feature auswählen.'; return null; }
+    function mulberry32(a){return function(){let t=a+=0x6D2B79F5;t=Math.imul(t^(t>>>15),t|1);t^=t+Math.imul(t^(t>>>7),t|61);return((t^(t>>>14))>>>0)/4294967296;}};
+    function shuffleIndices(n, seed){const arr=Array.from({length:n},(_,i)=>i);const rnd=mulberry32(seed>>>0);for(let i=arr.length-1;i>0;i--){const j=Math.floor(rnd()*(i+1));const tmp=arr[i];arr[i]=arr[j];arr[j]=tmp;}return arr;}
+    function splitData(X,y,trainP,valP,testP,seed,shuffle){const n=X.length;const idx=shuffle?shuffleIndices(n,seed):Array.from({length:n},(_,i)=>i);const nTrain=Math.floor(n*trainP/100),nVal=Math.floor(n*valP/100);const trainIdx=idx.slice(0,nTrain),valIdx=idx.slice(nTrain,nTrain+nVal),testIdx=idx.slice(nTrain+nVal);function pick(list){return{X:list.map(i=>X[i]),y:list.map(i=>y[i])};}return{train:pick(trainIdx),val:pick(valIdx),test:pick(testIdx)};}
+    function subsetFeatures(X,selectedIdx){return X.map(row=>selectedIdx.map(j=>row[j]));}
+    function fitScaler(X){const n=X.length,d=X[0].length,mean=Array(d).fill(0),std=Array(d).fill(0);for(let i=0;i<n;i++)for(let j=0;j<d;j++)mean[j]+=X[i][j];for(let j=0;j<d;j++)mean[j]/=n;for(let i=0;i<n;i++)for(let j=0;j<d;j++)std[j]+=Math.pow(X[i][j]-mean[j],2);for(let j=0;j<d;j++)std[j]=Math.sqrt(std[j]/n)||1;return{mean,std};}
+    function applyScaler(X,scaler){return X.map(row=>row.map((v,j)=>(v-scaler.mean[j])/scaler.std[j]));}
+    function accuracy(yTrue,yPred){let ok=0;for(let i=0;i<yTrue.length;i++)if(yTrue[i]===yPred[i])ok++;return ok/yTrue.length;}
+    function argmax(arr){let idx=0;for(let i=1;i<arr.length;i++)if(arr[i]>arr[idx])idx=i;return idx;}
+    function dot(a,b){let s=0;for(let i=0;i<a.length;i++)s+=a[i]*b[i];return s;}
+    function trainKNN(X,y,params){return{X,y,k:params.k};}
+    function predictKNN(model,Xtest,nClasses){return Xtest.map(row=>{const dists=model.X.map((trainRow,idx)=>{let s=0;for(let j=0;j<trainRow.length;j++){const diff=trainRow[j]-row[j];s+=diff*diff;}return{cls:model.y[idx],dist:Math.sqrt(s)};});dists.sort((a,b)=>a.dist-b.dist);const counts=Array(nClasses).fill(0),k=Math.min(model.k,dists.length);for(let i=0;i<k;i++)counts[dists[i].cls]++;return argmax(counts);});}
+    function softmax(scores){const max=Math.max(...scores);const exps=scores.map(s=>Math.exp(s-max));const sum=exps.reduce((a,b)=>a+b,0);return exps.map(v=>v/sum)}
+    function trainLogReg(X,y,params,nClasses){const n=X.length,d=X[0].length+1,Xb=X.map(row=>[1,...row]);const W=Array.from({length:nClasses},()=>Array(d).fill(0));for(let epoch=0;epoch<params.epochs;epoch++){const grad=Array.from({length:nClasses},()=>Array(d).fill(0));for(let i=0;i<n;i++){const probs=softmax(W.map(w=>dot(w,Xb[i])));for(let c=0;c<nClasses;c++){const yi=y[i]===c?1:0,err=probs[c]-yi;for(let j=0;j<d;j++)grad[c][j]+=err*Xb[i][j];}}for(let c=0;c<nClasses;c++){for(let j=0;j<d;j++){const reg=j===0?0:params.lambda*W[c][j];W[c][j]-=params.learningRate*((grad[c][j]/n)+reg);}}}return{W};}
+    function predictLogReg(model,X){return X.map(row=>argmax(model.W.map(w=>dot(w,[1,...row]))));}
+    function gini(labels,nClasses){const counts=Array(nClasses).fill(0);labels.forEach(v=>counts[v]++);const n=labels.length;let g=1;for(let c=0;c<nClasses;c++){const p=counts[c]/n;g-=p*p;}return g;}
+    function majority(labels,nClasses){const counts=Array(nClasses).fill(0);labels.forEach(v=>counts[v]++);return argmax(counts);}
+    function bestSplit(X,y,nClasses,minSamplesSplit){if(X.length<minSamplesSplit)return null;const base=gini(y,nClasses);let best=null;for(let j=0;j<X[0].length;j++){const values=Array.from(new Set(X.map(row=>row[j]))).sort((a,b)=>a-b);for(let i=0;i<values.length-1;i++){const thr=(values[i]+values[i+1])/2,leftY=[],rightY=[];for(let r=0;r<X.length;r++)(X[r][j]<=thr?leftY:rightY).push(y[r]);if(!leftY.length||!rightY.length)continue;const weighted=(leftY.length/X.length)*gini(leftY,nClasses)+(rightY.length/X.length)*gini(rightY,nClasses);const gain=base-weighted;if(!best||gain>best.gain)best={feature:j,threshold:thr,gain};}}return best;}
+    function buildTree(X,y,depth,params,nClasses){const node={prediction:majority(y,nClasses)};if(depth>=params.maxDepth||gini(y,nClasses)===0||X.length<params.minSamplesSplit)return node;const split=bestSplit(X,y,nClasses,params.minSamplesSplit);if(!split||split.gain<=1e-12)return node;const leftX=[],leftY=[],rightX=[],rightY=[];for(let i=0;i<X.length;i++){if(X[i][split.feature]<=split.threshold){leftX.push(X[i]);leftY.push(y[i]);}else{rightX.push(X[i]);rightY.push(y[i]);}}if(!leftX.length||!rightX.length)return node;node.feature=split.feature;node.threshold=split.threshold;node.left=buildTree(leftX,leftY,depth+1,params,nClasses);node.right=buildTree(rightX,rightY,depth+1,params,nClasses);return node;}
+    function trainTree(X,y,params,nClasses){return buildTree(X,y,0,params,nClasses);} function predictTree(model,X){function pred(node,row){return typeof node.feature==='undefined'?node.prediction:(row[node.feature]<=node.threshold?pred(node.left,row):pred(node.right,row));}return X.map(row=>pred(model,row));}
+    function evaluateValidation(run){let valPred;if(run.algorithm==='knn')valPred=predictKNN(run.model,run.scaled.valX,run.nClasses);else if(run.algorithm==='logreg')valPred=predictLogReg(run.model,run.scaled.valX);else valPred=predictTree(run.model,run.scaled.valX);return accuracy(run.split.val.y,valPred);}
+    function evaluateTest(run){let testPred;if(run.algorithm==='knn')testPred=predictKNN(run.model,run.scaled.testX,run.nClasses);else if(run.algorithm==='logreg')testPred=predictLogReg(run.model,run.scaled.testX);else testPred=predictTree(run.model,run.scaled.testX);return accuracy(run.split.test.y,testPred);}
+    function clearStep6Metrics(){ $('valAccCurrent').textContent='–'; $('barValCurrent').textContent='–'; $('chartValCurrent').style.width='0%'; $('bestValOverall').textContent='–'; state.selectedRunIndex = null; }
+    function clearStep7Metrics(){ $('finalValAcc').textContent='–'; $('finalTestAcc').textContent='–'; $('barValFinal').textContent='–'; $('barTestFinal').textContent='–'; $('chartValFinal').style.width='0%'; $('chartTestFinal').style.width='0%'; $('interpretationBox').className='note'; $('interpretationBox').textContent='Noch keine finale Testbewertung durchgeführt.'; }
+    function updateStep7Gate(){ const locked=!state.finalSelection; $('step7').classList.toggle('step7-disabled',locked); if(locked){ $('step7Gate').innerHTML='<span class="badge">Schritt 7 ist noch gesperrt</span>'; setEvaluateEnabled(false);} else { $('step7Gate').innerHTML='<span class="badge">Schritt 7 freigeschaltet</span>'; setEvaluateEnabled(true); $('finalValAcc').textContent=(state.finalSelection.valAcc*100).toFixed(1)+' %'; $('barValFinal').textContent=(state.finalSelection.valAcc*100).toFixed(1)+' %'; $('chartValFinal').style.width=(state.finalSelection.valAcc*100).toFixed(1)+'%'; } }
+    function getBestRunIndex(){ if(!state.runHistory.length) return -1; let best=0; for(let i=1;i<state.runHistory.length;i++){ if(state.runHistory[i].valAcc > state.runHistory[best].valAcc) best=i; } return best; }
+    function renderHistory(){ const body=$('historyBody'); if(!state.runHistory.length){ body.innerHTML='<tr><td colspan="7">Noch keine Läufe vorhanden.</td></tr>'; return;} const bestIdx=getBestRunIndex(); $('bestValOverall').textContent=(state.runHistory[bestIdx].valAcc*100).toFixed(1)+' %'; body.innerHTML=state.runHistory.map((row,idx)=>'<tr class="'+(idx===bestIdx?'history-row-best':'')+'">'+'<td>'+(idx+1)+(idx===bestIdx?' <span class="best-badge">Best</span>':'')+'</td>'+'<td>'+row.algorithm+'</td>'+'<td>'+row.features+'</td>'+'<td>'+row.split+'</td>'+'<td>'+(row.valAcc*100).toFixed(1)+' %</td>'+'<td><input type="radio" name="selectedValidationRun" data-run-index="'+idx+'" '+(state.selectedRunIndex===idx?'checked':'')+' aria-label="Validation-Lauf auswählen"></td>'+'<td>'+(row.finalChosen?'Ja':'–')+'</td>'+'</tr>').join(''); Array.from(document.querySelectorAll('input[name="selectedValidationRun"]')).forEach(radio=>radio.addEventListener('change',()=>{ state.selectedRunIndex = Number(radio.dataset.runIndex); })); }
+    function buildInterpretation(valAcc,testAcc){ const gap=valAcc-testAcc; if(gap>0.08)return 'Die Test Accuracy liegt deutlich unter der zuvor beobachteten Validation Accuracy. Das ist ein gutes Beispiel dafür, warum das Test-Set bewusst bis zum Schluss zurückgehalten werden sollte.'; if(gap<-.03)return 'Die Test Accuracy liegt leicht über der Validation Accuracy. Das kann auf zufällige Schwankung durch den Split hindeuten; wichtig ist vor allem, dass der Test wirklich erst ganz am Ende verwendet wurde.'; return 'Validation und Test liegen relativ nah beieinander. Das spricht dafür, dass die mit dem Validation-Set getroffene Modellauswahl auf unbekannten Daten ähnlich funktioniert.'; }
+    function performTrainingOnly(){ syncParamsFromUI(); const trainP=Number($('trainPercent').value), valP=Number($('valPercent').value), testP=Number($('testPercent').value); const seed=42, shuffle=$('shuffleInput').checked; const selectedIdx=DATA.featureNames.map((name,idx)=>state.selectedFeatures.indexOf(name)>=0?idx:-1).filter(v=>v>=0); const Xsub=subsetFeatures(DATA.X,selectedIdx); const split=splitData(Xsub,DATA.y.slice(),trainP,valP,testP,seed,shuffle); const scaler=fitScaler(split.train.X); const trainX=applyScaler(split.train.X,scaler), valX=applyScaler(split.val.X,scaler), testX=applyScaler(split.test.X,scaler); const nClasses=DATA.targetNames.length; let model; if(state.algorithm==='knn') model=trainKNN(trainX,split.train.y,state.params.knn); else if(state.algorithm==='logreg') model=trainLogReg(trainX,split.train.y,state.params.logreg,nClasses); else model=trainTree(trainX,split.train.y,state.params.tree,nClasses); return {algorithm:state.algorithm, featureCount:state.selectedFeatures.length, splitConfig:{train:trainP,val:valP,test:testP}, split, scaler, scaled:{trainX,valX,testX}, model, nClasses}; }
+    function runTrainingWorkflow(){ if(state.trainingInProgress)return; const error=validateSettings(); if(error){ status('Fehler:\n'+error); return; } state.trainingInProgress=true; setPromoteEnabled(false); $('progressBar').style.width='0%'; const messages=['Datensplit wird vorbereitet...','Features werden extrahiert...','Trainingsdaten werden skaliert...','Modell lernt Muster im Wine-Dataset...','Validation-Metrik wird berechnet...']; let step=0; $('progressText').textContent=messages[0]; status('Training + Validation wurde gestartet.'); const timer=setInterval(()=>{ step++; const pct=Math.min(step*20,100); $('progressBar').style.width=pct+'%'; $('progressText').textContent=messages[Math.min(step-1,messages.length-1)]; status('Lauf aktiv...\nFortschritt: '+pct+' %\n'+messages[Math.min(step-1,messages.length-1)]); if(step>=5){ clearInterval(timer); const run=performTrainingOnly(); const valAcc=evaluateValidation(run); run.valAcc=valAcc; state.lastRun=run; state.runHistory.unshift({algorithm:run.algorithm,features:run.featureCount,split:run.splitConfig.train+'/'+run.splitConfig.val+'/'+run.splitConfig.test,valAcc,finalChosen:false,runRef:run}); state.selectedRunIndex = 0; $('valAccCurrent').textContent=(valAcc*100).toFixed(1)+' %'; $('barValCurrent').textContent=(valAcc*100).toFixed(1)+' %'; $('chartValCurrent').style.width=(valAcc*100).toFixed(1)+'%'; renderHistory(); setPromoteEnabled(true); state.trainingInProgress=false; status('Lauf abgeschlossen.\nValidation Accuracy bewertet: '+(valAcc*100).toFixed(1)+' %\nPasse jetzt optional Schritt 2–5 an und starte bei Bedarf einen neuen Lauf.'); $('progressText').textContent='Validation bewertet. Du kannst jetzt iterieren oder das Modell übernehmen.'; } },650); }
+    function promoteCurrentRun(){ if(state.selectedRunIndex===null || !state.runHistory[state.selectedRunIndex]) return; const chosen = state.runHistory[state.selectedRunIndex]; if(!chosen.runRef) return; state.finalSelection={algorithm:chosen.runRef.algorithm, featureCount:chosen.runRef.featureCount, splitConfig:chosen.runRef.splitConfig, valAcc:chosen.runRef.valAcc, _ref:chosen.runRef}; state.runHistory = state.runHistory.map((row,idx)=>({...row, finalChosen: idx===state.selectedRunIndex, runRef: row.runRef})); renderHistory(); updateStep7Gate(); clearStep7Metrics(); $('finalValAcc').textContent=(chosen.runRef.valAcc*100).toFixed(1)+' %'; $('barValFinal').textContent=(chosen.runRef.valAcc*100).toFixed(1)+' %'; $('chartValFinal').style.width=(chosen.runRef.valAcc*100).toFixed(1)+'%'; status('Modell wurde übernommen.\nAusgewählter Validation-Lauf: '+(state.selectedRunIndex+1)+'\nJetzt darf die finale Bewertung mit den Testdaten durchgeführt werden.'); $('step7').scrollIntoView({behavior:'smooth', block:'start'}); }
+    function evaluateFinal(){ if(!state.finalSelection||!state.finalSelection._ref)return; const ref=state.finalSelection._ref; const testAcc=evaluateTest(ref); $('finalValAcc').textContent=(ref.valAcc*100).toFixed(1)+' %'; $('finalTestAcc').textContent=(testAcc*100).toFixed(1)+' %'; $('barValFinal').textContent=(ref.valAcc*100).toFixed(1)+' %'; $('barTestFinal').textContent=(testAcc*100).toFixed(1)+' %'; $('chartValFinal').style.width=(ref.valAcc*100).toFixed(1)+'%'; $('chartTestFinal').style.width=(testAcc*100).toFixed(1)+'%'; $('interpretationBox').className='note'; $('interpretationBox').textContent=buildInterpretation(ref.valAcc,testAcc); status('Finale Bewertung durchgeführt.\nValidation Accuracy: '+(ref.valAcc*100).toFixed(1)+' %\nTest Accuracy: '+(testAcc*100).toFixed(1)+' %'); }
+    function resetAll(){ state.selectedFeatures=[]; state.algorithm='knn'; state.params={knn:{k:5},logreg:{learningRate:.1,epochs:250,lambda:.01},tree:{maxDepth:4,minSamplesSplit:4}}; state.lastRun=null; state.finalSelection=null; state.runHistory=[]; state.selectedRunIndex=null; state.trainingInProgress=false; setSplitFields(60,20,20); $('shuffleInput').checked=true; $('progressBar').style.width='0%'; $('progressText').textContent='Noch kein Training gestartet.'; clearStep6Metrics(); clearStep7Metrics(); renderHistory(); updateStep7Gate(); setPromoteEnabled(false); status('Bereit.'); renderFeatures(); renderAlgorithms(); renderParams(); }
+    function initStepMenu(){ const links=Array.from(document.querySelectorAll('.step-link')); links.forEach(link=>link.addEventListener('click',()=>{links.forEach(l=>l.classList.remove('active'));link.classList.add('active');})); const sections=Array.from(document.querySelectorAll('main section[id^="step"]')); const observer=new IntersectionObserver(entries=>{entries.forEach(entry=>{if(entry.isIntersecting){const id=entry.target.getAttribute('id'); links.forEach(link=>link.classList.toggle('active', link.getAttribute('href')==='#'+id));}});},{rootMargin:'-35% 0px -55% 0px', threshold:.01}); sections.forEach(section=>observer.observe(section)); }
+    function attachEvents(){ $('selectAllBtn').addEventListener('click',()=>{state.selectedFeatures=DATA.featureNames.slice(); renderFeatures();}); $('clearAllBtn').addEventListener('click',()=>{state.selectedFeatures=[]; renderFeatures();}); ['trainPercent','valPercent','testPercent'].forEach(id=>$(id).addEventListener('input',()=>normalizeRemainder(id))); ['trainSlider','valSlider','testSlider'].forEach(id=>{ $(id).addEventListener('input',()=>normalizeRemainder(id.replace('Slider','Percent'))); $(id).addEventListener('change',()=>normalizeRemainder(id.replace('Slider','Percent'))); }); $('trainBtn').addEventListener('click',runTrainingWorkflow); $('promoteBtn').addEventListener('click',promoteCurrentRun); $('evaluateBtn').addEventListener('click',evaluateFinal); $('resetBtn').addEventListener('click',resetAll); }
+    setDatasetInfo(); renderFeatures(); setSplitFields(60,20,20); renderAlgorithms(); renderParams(); renderHistory(); clearStep6Metrics(); clearStep7Metrics(); updateStep7Gate(); attachEvents(); initStepMenu(); status('Bereit.');
+  </script>
+</body>
+</html>

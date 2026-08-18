@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Evaluieren eines ML-Modells und Vergleich unterschiedlicher Modelle</title>
+  <style>
+    :root {
+      --bg:#08111f; --bg2:#111b35; --text:#eef4ff; --muted:#bfd0ee;
+      --blue:#7db0ff; --blue2:#9f85ff; --green:#81e6b3; --yellow:#ffd166; --red:#ff9a9a; --cyan:#8be9ff;
+      --shadow:0 18px 44px rgba(0,0,0,.28); --radius:22px;
+    }
+    *{box-sizing:border-box} html{scroll-behavior:smooth}
+    body{margin:0;color:var(--text);font-family:Inter,Segoe UI,Arial,sans-serif;background:radial-gradient(circle at top right,rgba(125,176,255,.18),transparent 16%),radial-gradient(circle at 16% 18%,rgba(159,133,255,.12),transparent 22%),linear-gradient(180deg,var(--bg) 0%,var(--bg2) 100%);min-height:100vh}
+    .main{max-width:1320px;margin:0 auto;padding:28px}.glass,.card,.metric,.meta-box,.status-box,.history-box,.bar-chart,.formula-box,.viz-box{background:linear-gradient(180deg,rgba(255,255,255,.085),rgba(255,255,255,.045));border:1px solid rgba(255,255,255,.09);box-shadow:var(--shadow);backdrop-filter:blur(16px) saturate(180%)}
+    .hero{padding:26px;margin-bottom:18px;border-radius:26px;background:linear-gradient(135deg,rgba(125,176,255,.19),rgba(159,133,255,.14));border:1px solid rgba(255,255,255,.10);box-shadow:var(--shadow);backdrop-filter:blur(18px) saturate(170%)}
+    .kicker{display:inline-block;margin-bottom:10px;padding:6px 10px;border-radius:999px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.08);font-size:.8rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}.hero h1{margin:0 0 8px;font-size:2rem;line-height:1.15}.hero p{margin:0;color:var(--muted);line-height:1.55}.card{padding:20px;margin-bottom:18px;border-radius:var(--radius);position:relative;overflow:visible}.card h2{margin:0 0 6px;font-size:1.24rem}.sub{margin:0 0 16px;color:var(--muted);line-height:1.52}.grid-2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.grid-3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}.grid-4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}.inner-card{padding:16px;border-radius:18px;background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.09)}
+    .label-row{display:flex;align-items:center;gap:8px;margin-bottom:6px}label{font-weight:800}.hint-text{color:var(--muted);font-size:.89rem;line-height:1.45;margin-top:6px}.tooltip{position:relative;display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;border:1px solid rgba(255,255,255,.15);color:var(--muted);font-size:.78rem;cursor:help;z-index:50}.tooltip:after{content:attr(data-tip);position:absolute;left:50%;top:calc(100% + 10px);transform:translateX(-50%);width:min(340px,85vw);background:#111a36;color:var(--text);border:1px solid rgba(255,255,255,.2);border-radius:14px;padding:10px 12px;font-size:.82rem;line-height:1.45;box-shadow:var(--shadow);opacity:0;visibility:hidden;transition:.16s ease;z-index:100;pointer-events:none}.tooltip:hover:after,.tooltip:focus:after{opacity:1;visibility:visible}
+    input[type="number"],select{width:100%;padding:11px 12px;border-radius:14px;border:1px solid rgba(255,255,255,.11);background:#0f1a35;color:var(--text);outline:none}input[type="range"]{width:100%;accent-color:var(--blue);cursor:pointer;background:transparent}input[type="number"]:focus,select:focus{border-color:rgba(125,176,255,.62);box-shadow:0 0 0 3px rgba(125,176,255,.14)}button{appearance:none;border:0;cursor:pointer;border-radius:15px;padding:11px 16px;font-weight:800;transition:.18s ease}.btn-primary{color:white;background:linear-gradient(135deg,var(--blue),var(--blue2));box-shadow:0 12px 28px rgba(125,176,255,.22)}.btn-primary:hover{transform:translateY(-1px)}.btn-secondary{color:var(--text);background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.08)}.btn-secondary:hover{background:rgba(255,255,255,.11)}.btn-row{display:flex;gap:10px;flex-wrap:wrap}.algo-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.algo-card{padding:16px;border-radius:18px;font:inherit;text-align:left;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);color:var(--text)}.algo-card:hover{background:rgba(255,255,255,.08);transform:translateY(-1px)}.algo-card.selected{background:linear-gradient(135deg,rgba(125,176,255,.22),rgba(159,133,255,.14));border-color:rgba(125,176,255,.4)}.algo-name{font-weight:900;margin-bottom:6px;color:var(--blue)}.algo-desc{color:var(--muted);line-height:1.45;font-size:.92rem}.param-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px}.param-card{padding:14px;border-radius:18px;background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.09)}
+    .segmented-bar{display:flex;height:18px;overflow:hidden;border-radius:999px;border:1px solid rgba(255,255,255,.09);margin:12px 0 8px}.seg-train{background:#73abff}.seg-val{background:#ffd166}.seg-test{background:#86e6b2}.legend{display:flex;gap:14px;flex-wrap:wrap;color:var(--muted);font-size:.88rem}.dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px}.progress-shell{position:relative;height:16px;border-radius:999px;border:1px solid rgba(255,255,255,.08);overflow:hidden;background:rgba(255,255,255,.05);margin-top:12px}.progress-bar{height:100%;width:0%;background:linear-gradient(90deg,var(--blue),var(--blue2));transition:width .3s ease}.progress-text{margin-top:8px;color:var(--muted);font-size:.9rem}.status-box{white-space:pre-line;min-height:106px;background:#0e1731;color:#dce8ff;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;line-height:1.45;border-radius:var(--radius);padding:14px}.metrics-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.metric{padding:16px;border-radius:var(--radius);overflow:hidden;position:relative}.metric:before{content:"";position:absolute;inset:-50% -20% auto auto;width:120px;height:120px;border-radius:50%;background:rgba(255,255,255,.06)}.metric-label{color:var(--muted);font-size:.9rem}.metric-value{margin-top:5px;font-size:2rem;font-weight:900;letter-spacing:-.02em}.formula{margin-top:8px;color:#eaf2ff;font-size:.88rem;background:rgba(0,0,0,.18);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:8px;min-height:50px}.gauge{margin-top:12px;height:12px;border-radius:999px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.08);overflow:hidden}.gauge-fill{height:100%;width:0%;border-radius:999px;background:linear-gradient(90deg,var(--red),var(--yellow),var(--green));transition:width .5s ease}.viz-box,.formula-box,.bar-chart,.history-box{border-radius:var(--radius);padding:16px}.viz-box h3,.formula-box h3,.bar-chart h3,.history-box h3{margin:0 0 10px;font-size:1.05rem}.matrix{display:grid;grid-template-columns:90px repeat(3,1fr);gap:6px}.cell{padding:10px;border-radius:12px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);text-align:center}.cell.head{color:var(--muted);font-weight:800}.cell.good{background:rgba(129,230,179,.14);border-color:rgba(129,230,179,.28)}.cell.bad{background:rgba(255,154,154,.11);border-color:rgba(255,154,154,.22)}.bar-row{margin-bottom:12px}.bar-label{display:flex;justify-content:space-between;color:var(--muted);font-size:.88rem;margin-bottom:5px}.bar-track{height:16px;border-radius:999px;overflow:hidden;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08)}.bar-fill{height:100%;width:0%;transition:width .5s ease;background:linear-gradient(90deg,var(--blue),var(--blue2))}.bar-fill.green{background:#86e6b2}.bar-fill.yellow{background:#ffd166}.table-wrap{overflow:auto;border-radius:18px;border:1px solid rgba(255,255,255,.08)}table{width:100%;border-collapse:collapse;min-width:860px}th,td{border:1px solid rgba(255,255,255,.08);padding:8px 10px;text-align:left}th{background:rgba(255,255,255,.06)}td{background:rgba(255,255,255,.02)}.small{font-size:.88rem;color:var(--muted)}.badge{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;background:rgba(125,176,255,.16);color:var(--text);font-size:.82rem;border:1px solid rgba(125,176,255,.28)}.warn{background:rgba(255,209,102,.12);border:1px solid rgba(255,209,102,.22);border-radius:16px;padding:12px;color:#ffe8a8}.note{background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.09);border-radius:18px;padding:14px;color:var(--muted);line-height:1.5}
+    @media(max-width:1000px){.main{padding:16px}.grid-2,.grid-3,.grid-4,.algo-grid,.metrics-grid{grid-template-columns:1fr}.matrix{grid-template-columns:70px repeat(3,1fr)}.hero h1{font-size:1.55rem}}
+  </style>
+</head>
+<body>
+  <main class="main">
+    <section class="hero">
+      <div class="kicker">Übungen 3.3.2 und 3.3.3</div>
+      <h1>Evaluieren eines ML-Modells und Vergleich unterschiedlicher Modelle</h1>
+      <p>In dieser Übung trainierst du ein Klassifikationsmodell, variierst Algorithmus, Hyperparameter und Datensatzbedingungen und vergleichst anschließend Training Time sowie ML Functional Performance Metrics. Ziel ist nicht nur ein hoher Wert, sondern das Verständnis, warum sich Metriken bei Bias, wenig Daten, Lücken, Rauschen oder unausgewogenen Klassen verändern.</p>
+    </section>
+
+    <section class="card">
+      <h2>Schritt 1 und 2: Modell und Daten konfigurieren</h2>
+      <p class="sub">Wähle zuerst Algorithmus und Hyperparameter. Stelle danach den Datensatz und den Train / Validation / Test Split ein. Die Übung berechnet später Accuracy, Precision, Recall/Sensitivität und F1-Score aus einer simulierten Konfusionsmatrix.</p>
+      <div class="grid-2">
+        <div class="inner-card" id="step1">
+          <h2>Schritt 1a: Algorithmus auswählen</h2>
+          <p class="sub">Nutze unterschiedliche Modelle, um zu beobachten, wie sich Trainingszeit und Klassifikationsleistung verändern.</p>
+          <div id="algoList" class="algo-grid"></div>
+          <h2 style="margin-top:18px">Schritt 1b: Hyperparameter konfigurieren</h2>
+          <div id="paramList" class="param-grid"></div>
+        </div>
+        <div class="inner-card" id="step2">
+          <h2>Schritt 2a: Datensatz auswählen</h2>
+          <div class="label-row"><label for="datasetSelect">Datensatz-Kombination</label><span class="tooltip" tabindex="0" data-tip="Die Auswahl verändert Datenmenge, Schwierigkeit, Bias, fehlende Werte, Rauschen, Klassenverteilung und Überlappung der Klassen.">?</span></div>
+          <select id="datasetSelect"></select>
+          <div id="datasetInfo" class="note" style="margin-top:12px"></div>
+          <h2 style="margin-top:18px">Schritt 2b: Train / Validation / Test Split einstellen</h2>
+          <div class="grid-3">
+            <div><div class="label-row"><label for="trainPercent">Training (%)</label></div><input id="trainSlider" type="range" min="0" max="100" step="1" value="60"><input id="trainPercent" type="number" min="0" max="100" step="1" value="60" style="margin-top:8px"></div>
+            <div><div class="label-row"><label for="valPercent">Validation (%)</label></div><input id="valSlider" type="range" min="0" max="100" step="1" value="20"><input id="valPercent" type="number" min="0" max="100" step="1" value="20" style="margin-top:8px"></div>
+            <div><div class="label-row"><label for="testPercent">Test (%)</label></div><input id="testSlider" type="range" min="0" max="100" step="1" value="20"><input id="testPercent" type="number" min="0" max="100" step="1" value="20" style="margin-top:8px"></div>
+          </div>
+          <div class="segmented-bar"><div id="trainBar" class="seg-train" style="width:60%"></div><div id="valBar" class="seg-val" style="width:20%"></div><div id="testBar" class="seg-test" style="width:20%"></div></div>
+          <div class="legend"><span><span class="dot" style="background:#73abff"></span>Training</span><span><span class="dot" style="background:#ffd166"></span>Validation</span><span><span class="dot" style="background:#86e6b2"></span>Test</span></div>
+          <div id="splitInfo" class="hint-text"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card" id="step3">
+      <h2>Schritt 3: Modell trainieren</h2>
+      <p class="sub">Starte einen Trainingslauf. Danach kannst du Einstellungen ändern und weitere Läufe erzeugen. Die Run-History hilft beim Vergleich unterschiedlicher Modelle und Datensatzkombinationen.</p>
+      <div class="btn-row"><button type="button" class="btn-primary" id="trainBtn">Modell trainieren</button><button type="button" class="btn-secondary" id="resetBtn">Reset auf Standardwerte</button></div>
+      <div class="progress-shell"><div id="progressBar" class="progress-bar"></div></div>
+      <div id="progressText" class="progress-text">Noch kein Training gestartet.</div>
+      <div id="statusBox" class="status-box" style="margin-top:12px">Bereit.</div>
+      <div class="grid-3" style="margin-top:14px">
+        <div class="metric"><div class="metric-label">Modell</div><div class="metric-value" id="currentModel">-</div></div>
+        <div class="metric"><div class="metric-label">Trainingszeit</div><div class="metric-value" id="trainTime">-</div></div>
+        <div class="metric"><div class="metric-label">Bewertete Testfälle</div><div class="metric-value" id="evalCases">-</div></div>
+      </div>
+    </section>
+
+    <section class="card" id="step4">
+      <h2>Schritt 4: Metriken berechnen</h2>
+      <p class="sub">Die Werte werden aus True Positives, False Positives, True Negatives und False Negatives berechnet. Bei mehreren Klassen nutzt die Übung eine Macro-Average-Betrachtung: Die Metrik wird pro Klasse berechnet und anschließend gemittelt.</p>
+      <div class="metrics-grid">
+        <div class="metric"><div class="metric-label">Genauigkeit / Accuracy</div><div class="metric-value" id="mAccuracy">-</div><div class="formula">(TP + TN) / (TP + TN + FP + FN)</div><div class="gauge"><div id="gAccuracy" class="gauge-fill"></div></div></div>
+        <div class="metric"><div class="metric-label">Präzision / Precision</div><div class="metric-value" id="mPrecision">-</div><div class="formula">TP / (TP + FP)</div><div class="gauge"><div id="gPrecision" class="gauge-fill"></div></div></div>
+        <div class="metric"><div class="metric-label">Sensitivität / Recall</div><div class="metric-value" id="mRecall">-</div><div class="formula">TP / (TP + FN)</div><div class="gauge"><div id="gRecall" class="gauge-fill"></div></div></div>
+        <div class="metric"><div class="metric-label">F1-Score</div><div class="metric-value" id="mF1">-</div><div class="formula">2 * (Precision * Recall) / (Precision + Recall)</div><div class="gauge"><div id="gF1" class="gauge-fill"></div></div></div>
+      </div>
+      <div class="grid-2" style="margin-top:14px">
+        <div class="viz-box">
+          <h3>Konfusionsmatrix</h3>
+          <div id="confusionMatrix" class="matrix"></div>
+          <div class="hint-text">Zeilen = tatsächliche Klasse, Spalten = vorhergesagte Klasse.</div>
+        </div>
+        <div class="bar-chart">
+          <h3>Grafischer Vergleich der Metriken</h3>
+          <div class="bar-row"><div class="bar-label"><span>Accuracy</span><span id="bAccuracyText">-</span></div><div class="bar-track"><div id="bAccuracy" class="bar-fill green"></div></div></div>
+          <div class="bar-row"><div class="bar-label"><span>Precision</span><span id="bPrecisionText">-</span></div><div class="bar-track"><div id="bPrecision" class="bar-fill"></div></div></div>
+          <div class="bar-row"><div class="bar-label"><span>Recall / Sensitivität</span><span id="bRecallText">-</span></div><div class="bar-track"><div id="bRecall" class="bar-fill yellow"></div></div></div>
+          <div class="bar-row"><div class="bar-label"><span>F1-Score</span><span id="bF1Text">-</span></div><div class="bar-track"><div id="bF1" class="bar-fill"></div></div></div>
+          <div id="interpretation" class="note">Noch keine Metriken berechnet.</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Vergleich unterschiedlicher Modelle und Datensatzkombinationen</h2>
+      <p class="sub">Nutze mehrere Trainingsläufe, um zu beobachten, welche Kombinationen hohe Metriken liefern, ob ein Modell schneller trainiert und ob die Datensatzqualität mehr Einfluss hat als die Modellwahl.</p>
+      <div class="history-box">
+        <h3>Run-History</h3>
+        <div class="table-wrap"><table><thead><tr><th>#</th><th>Algorithmus</th><th>Datensatz</th><th>Split</th><th>Hyperparameter</th><th>Trainingszeit</th><th>Accuracy</th><th>Precision</th><th>Recall</th><th>F1</th></tr></thead><tbody id="historyBody"><tr><td colspan="10">Noch keine Läufe vorhanden.</td></tr></tbody></table></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Reflexionsfragen</h2>
+      <div class="grid-3">
+        <div class="warn"><strong>1. Metriken:</strong><br>Welche Metrik wäre kritisch, wenn falsch negative Ergebnisse besonders problematisch sind?</div>
+        <div class="warn"><strong>2. Datenqualität:</strong><br>Was passiert mit Precision und Recall, wenn der Datensatz stark unausgewogen oder biased ist?</div>
+        <div class="warn"><strong>3. Modellvergleich:</strong><br>Welcher Lauf ist der beste Kompromiss aus Trainingszeit und F1-Score?</div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const $ = id => document.getElementById(id);
+    const DATASETS = [
+      {key:'rich',name:'Umfangreicher Datensatz',size:2200,difficulty:.05,bias:.02,missing:.00,noise:.04,imbalance:.02,desc:'Viele Beispiele, kaum fehlende Werte, gute Klassenabdeckung.'},
+      {key:'small',name:'Wenig Daten',size:160,difficulty:.16,bias:.04,missing:.02,noise:.08,imbalance:.05,desc:'Nur wenige Beispiele. Validierung und Test schwanken stärker.'},
+      {key:'biased',name:'Daten mit viel Bias',size:900,difficulty:.14,bias:.22,missing:.02,noise:.06,imbalance:.12,desc:'Eine Klasse ist systematisch bevorzugt. Precision und Recall driften auseinander.'},
+      {key:'missing',name:'Daten mit Lücken',size:780,difficulty:.13,bias:.05,missing:.20,noise:.08,imbalance:.05,desc:'Viele fehlende Werte erschweren das Lernen stabiler Muster.'},
+      {key:'noisy',name:'Daten mit starkem Rauschen',size:1000,difficulty:.18,bias:.04,missing:.03,noise:.20,imbalance:.06,desc:'Labels und Features enthalten Störungen. Flexible Modelle können überreagieren.'},
+      {key:'imbalanced',name:'Unausgewogene Klassen',size:1100,difficulty:.12,bias:.10,missing:.01,noise:.07,imbalance:.25,desc:'Eine Klasse dominiert. Accuracy kann gut aussehen, obwohl Recall schwach ist.'},
+      {key:'overlap',name:'Stark überlappende Klassen',size:900,difficulty:.24,bias:.04,missing:.02,noise:.10,imbalance:.05,desc:'Die Klassen sind schwer trennbar. Alle Modelle verlieren Leistung.'},
+      {key:'outliers',name:'Viele Ausreißer',size:850,difficulty:.15,bias:.04,missing:.03,noise:.16,imbalance:.05,desc:'Einzelne extreme Werte stören insbesondere Distanz- und Grenzwertmodelle.'},
+      {key:'clean',name:'Sehr einfache saubere Daten',size:650,difficulty:.01,bias:.01,missing:.00,noise:.01,imbalance:.01,desc:'Deutliche Klassengrenzen. Fast jedes Modell sollte gut funktionieren.'},
+      {key:'drift',name:'Veränderte Testdaten / Data Drift',size:950,difficulty:.20,bias:.08,missing:.03,noise:.11,imbalance:.07,desc:'Testdaten unterscheiden sich von Trainingsdaten. Gute Validation muss nicht guten Test bedeuten.'}
+    ];
+    const ALGOS = [
+      {key:'tree',title:'Decision Tree',desc:'Trifft schrittweise Wenn-Dann-Entscheidungen entlang einzelner Merkmale.',base:.80,time:1.0},
+      {key:'knn',title:'k-Nearest Neighbors',desc:'Klassifiziert nach den ähnlichsten bekannten Beispielen.',base:.78,time:1.25},
+      {key:'logreg',title:'Logistic Regression',desc:'Lernt lineare Entscheidungsgrenzen und Klassenwahrscheinlichkeiten.',base:.82,time:1.55}
+    ];
+    const state = {algorithm:'knn',params:{knn:{k:5},logreg:{learningRate:.1,epochs:250,lambda:.01},tree:{maxDepth:4,minSamplesSplit:4}},history:[],training:false};
+    function pct(v){return (v*100).toFixed(1)+' %'}
+    function clamp(v,min,max){return Math.max(min,Math.min(max,v))}
+    function renderDatasetOptions(){ $('datasetSelect').innerHTML=DATASETS.map(d=>'<option value="'+d.key+'">'+d.name+'</option>').join(''); updateDatasetInfo(); }
+    function currentDataset(){return DATASETS.find(d=>d.key===$('datasetSelect').value)||DATASETS[0]}
+    function updateDatasetInfo(){ const d=currentDataset(); $('datasetInfo').innerHTML='<strong>'+d.name+'</strong><br>'+d.desc+'<br><br>Beispiele: <strong>'+d.size+'</strong><br>Fehlende Werte: <strong>'+Math.round(d.missing*100)+' %</strong><br>Bias/Imbalance: <strong>'+Math.round((d.bias+d.imbalance)*50)+' %</strong>'; }
+    function renderAlgorithms(){ const wrap=$('algoList'); wrap.innerHTML=''; ALGOS.forEach(a=>{const b=document.createElement('button'); b.type='button'; b.className='algo-card'+(state.algorithm===a.key?' selected':''); b.innerHTML='<div class="algo-name">'+a.title+'</div><div class="algo-desc">'+a.desc+'</div>'; b.onclick=()=>{state.algorithm=a.key; renderAlgorithms(); renderParams();}; wrap.appendChild(b);}); }
+    function paramCard(label,input,why,effect){return '<div class="param-card"><div class="label-row"><label>'+label+'</label></div>'+input+'<div class="hint-text"><strong>Wozu dient das?</strong> '+why+'</div><div class="hint-text"><strong>Typischer Effekt:</strong> '+effect+'</div></div>'}
+    function renderParams(){ let html=''; if(state.algorithm==='knn'){html+=paramCard('Anzahl ähnlicher Nachbarn','<input id="param_knn_k" type="number" min="1" max="25" step="1" value="'+state.params.knn.k+'">','Bestimmt, wie viele Nachbarn abstimmen.','Kleine Werte sind sensibler, große Werte glätten stärker.');}
+      else if(state.algorithm==='logreg'){html+=paramCard('Lerngeschwindigkeit','<input id="param_lr" type="number" min="0.001" max="1" step="0.001" value="'+state.params.logreg.learningRate+'">','Legt die Schrittgröße beim Lernen fest.','Zu groß kann instabil werden, zu klein lernt langsam.'); html+=paramCard('Trainingsrunden','<input id="param_epochs" type="number" min="50" max="1000" step="10" value="'+state.params.logreg.epochs+'">','Gibt an, wie oft die Daten durchlaufen werden.','Mehr Runden verbessern bis zu einem Sättigungspunkt.'); html+=paramCard('Regularisierung','<input id="param_lambda" type="number" min="0" max="1" step="0.001" value="'+state.params.logreg.lambda+'">','Hält das Modell einfacher.','Kann Overfitting reduzieren, aber auch Leistung kosten.');}
+      else{html+=paramCard('Maximale Baumtiefe','<input id="param_depth" type="number" min="1" max="10" step="1" value="'+state.params.tree.maxDepth+'">','Begrenzt die Anzahl der Entscheidungsebenen.','Tiefere Bäume merken sich mehr Details.'); html+=paramCard('Mindestfälle für neue Regel','<input id="param_min_split" type="number" min="2" max="20" step="1" value="'+state.params.tree.minSamplesSplit+'">','Verhindert zu kleine Aufteilungen.','Höhere Werte machen den Baum robuster.');}
+      $('paramList').innerHTML=html; Array.from($('paramList').querySelectorAll('input')).forEach(i=>i.oninput=syncParams); }
+    function syncParams(){ if($('param_knn_k')) state.params.knn.k=Number($('param_knn_k').value)||5; if($('param_lr')) state.params.logreg.learningRate=Number($('param_lr').value)||.1; if($('param_epochs')) state.params.logreg.epochs=Number($('param_epochs').value)||250; if($('param_lambda')) state.params.logreg.lambda=Number($('param_lambda').value)||.01; if($('param_depth')) state.params.tree.maxDepth=Number($('param_depth').value)||4; if($('param_min_split')) state.params.tree.minSamplesSplit=Number($('param_min_split').value)||4; }
+    function normalizeSplit(edited){ const vals={trainPercent:Number($('trainPercent').value)||0,valPercent:Number($('valPercent').value)||0,testPercent:Number($('testPercent').value)||0}; vals[edited]=clamp(Math.round(vals[edited]),0,100); const others=['trainPercent','valPercent','testPercent'].filter(x=>x!==edited); const rem=100-vals[edited]; const sum=Math.max(0,vals[others[0]])+Math.max(0,vals[others[1]]); if(rem<=0){vals[others[0]]=0;vals[others[1]]=0}else if(sum===0){vals[others[0]]=Math.floor(rem/2);vals[others[1]]=rem-vals[others[0]]}else{vals[others[0]]=Math.round(rem*(vals[others[0]]/sum)); vals[others[1]]=rem-vals[others[0]]} setSplit(vals.trainPercent,vals.valPercent,vals.testPercent); }
+    function setSplit(t,v,s){ ['train','val','test'].forEach((p,i)=>{const val=[t,v,s][i]; $(p+'Percent').value=val; $(p+'Slider').value=val; $(p+'Bar').style.width=val+'%';}); $('splitInfo').textContent='Aufteilung: Training '+t+' %, Validation '+v+' %, Test '+s+' % (Summe: '+(t+v+s)+' %).'; }
+    function paramSummary(){ if(state.algorithm==='knn')return 'k='+state.params.knn.k; if(state.algorithm==='logreg')return 'lr='+state.params.logreg.learningRate+', epochs='+state.params.logreg.epochs+', lambda='+state.params.logreg.lambda; return 'Tiefe='+state.params.tree.maxDepth+', minSplit='+state.params.tree.minSamplesSplit; }
+    function qualityScore(){ syncParams(); const a=ALGOS.find(x=>x.key===state.algorithm), d=currentDataset(); let q=a.base - d.difficulty - d.noise*.45 - d.missing*.35 - d.bias*.25 - d.imbalance*.30; if(state.algorithm==='knn'){ q += .04*Math.exp(-Math.abs(state.params.knn.k-7)/6); q -= d.outliers?0.04:0; q -= d.noise*.10; }
+      if(state.algorithm==='logreg'){ q += .03*Math.exp(-Math.abs(state.params.logreg.learningRate-.08)/.12); q += .03*Math.min(1,state.params.logreg.epochs/400); q += .025*Math.min(.5,state.params.logreg.lambda); q -= d.difficulty>.2?.04:0; }
+      if(state.algorithm==='tree'){ q += .035*Math.exp(-Math.abs(state.params.tree.maxDepth-4)/3); q -= d.noise*.12; q -= Math.max(0,state.params.tree.maxDepth-7)*.018; }
+      const splitPenalty = Math.max(0, 45-Number($('trainPercent').value))*0.004 + Math.max(0, 10-Number($('testPercent').value))*0.003;
+      return clamp(q-splitPenalty,.42,.985);
+    }
+    function makeConfusion(acc){ const d=currentDataset(); const n=Math.max(18,Math.round(d.size*Number($('testPercent').value)/100)); const base=[Math.round(n*(.34+d.imbalance*.55)),Math.round(n*.33),0]; base[2]=Math.max(1,n-base[0]-base[1]); const matrix=[[0,0,0],[0,0,0],[0,0,0]]; let correctTotal=0; base.forEach((count,i)=>{let classAcc=clamp(acc - (i===2?d.bias*.18:0) - (i===0?d.imbalance*.10:0),.32,.99); const correct=Math.round(count*classAcc); matrix[i][i]=correct; correctTotal+=correct; let rest=count-correct; matrix[i][(i+1)%3]=Math.floor(rest*.58); matrix[i][(i+2)%3]=rest-matrix[i][(i+1)%3]; }); return {matrix,n:base.reduce((a,b)=>a+b,0),correct:correctTotal}; }
+    function calcMetrics(matrix){ const total=matrix.flat().reduce((a,b)=>a+b,0), correct=matrix.reduce((s,row,i)=>s+row[i],0); const per=[]; for(let c=0;c<3;c++){const tp=matrix[c][c]; let fp=0,fn=0; for(let i=0;i<3;i++){if(i!==c){fp+=matrix[i][c]; fn+=matrix[c][i];}} const prec=tp+fp?tp/(tp+fp):0, rec=tp+fn?tp/(tp+fn):0, f1=prec+rec?2*prec*rec/(prec+rec):0; per.push({prec,rec,f1});} return {accuracy:correct/total, precision:per.reduce((s,x)=>s+x.prec,0)/3, recall:per.reduce((s,x)=>s+x.rec,0)/3, f1:per.reduce((s,x)=>s+x.f1,0)/3}; }
+    function trainingTime(){ const a=ALGOS.find(x=>x.key===state.algorithm), d=currentDataset(); let t=.35 + a.time*d.size/900; if(state.algorithm==='knn')t+=state.params.knn.k*.015; if(state.algorithm==='logreg')t+=state.params.logreg.epochs*.004; if(state.algorithm==='tree')t+=state.params.tree.maxDepth*.12; t*=Number($('trainPercent').value)/60; return Math.max(.2,t); }
+    function renderMatrix(matrix){ const names=['Klasse A','Klasse B','Klasse C']; let html='<div class="cell head">Ist/Predict</div>'+names.map(n=>'<div class="cell head">'+n+'</div>').join(''); matrix.forEach((row,i)=>{html+='<div class="cell head">'+names[i]+'</div>'; row.forEach((v,j)=>html+='<div class="cell '+(i===j?'good':'bad')+'">'+v+'</div>');}); $('confusionMatrix').innerHTML=html; }
+    function renderMetrics(metrics){ [['Accuracy',metrics.accuracy],['Precision',metrics.precision],['Recall',metrics.recall],['F1',metrics.f1]].forEach(([k,v])=>{ $('m'+k).textContent=pct(v); $('g'+k).style.width=(v*100)+'%'; $('b'+k).style.width=(v*100)+'%'; $('b'+k+'Text').textContent=pct(v); }); const gap=metrics.precision-metrics.recall; $('interpretation').textContent=gap>.06?'Precision liegt deutlich über Recall: Das Modell ist eher vorsichtig und übersieht vermutlich relevante Fälle.':gap<-.06?'Recall liegt deutlich über Precision: Das Modell findet viele relevante Fälle, produziert aber mehr False Positives.':'Precision und Recall liegen nah beieinander. Der F1-Score bestätigt ein relativ ausbalanciertes Verhalten.'; }
+    function addHistory(run){ state.history.unshift(run); $('historyBody').innerHTML=state.history.map((r,i)=>'<tr><td>'+(i+1)+'</td><td>'+r.algo+'</td><td>'+r.dataset+'</td><td>'+r.split+'</td><td>'+r.params+'</td><td>'+r.time+'</td><td>'+pct(r.metrics.accuracy)+'</td><td>'+pct(r.metrics.precision)+'</td><td>'+pct(r.metrics.recall)+'</td><td>'+pct(r.metrics.f1)+'</td></tr>').join(''); }
+    function train(){ if(state.training)return; state.training=true; $('progressBar').style.width='0%'; const msgs=['Datensatzkombination wird vorbereitet...','Split wird angewendet...','Modell lernt Muster...','Vorhersagen für Testdaten werden erzeugt...','Metriken werden berechnet...']; let s=0; $('statusBox').textContent='Training gestartet.'; const timer=setInterval(()=>{s++; const p=Math.min(100,s*20); $('progressBar').style.width=p+'%'; $('progressText').textContent=msgs[Math.min(s-1,msgs.length-1)]; $('statusBox').textContent='Lauf aktiv...\nFortschritt: '+p+' %\n'+msgs[Math.min(s-1,msgs.length-1)]; if(s>=5){clearInterval(timer); const q=qualityScore(); const cm=makeConfusion(q); const metrics=calcMetrics(cm.matrix); const time=trainingTime().toFixed(2)+' s'; renderMatrix(cm.matrix); renderMetrics(metrics); $('currentModel').textContent=ALGOS.find(a=>a.key===state.algorithm).title; $('trainTime').textContent=time; $('evalCases').textContent=cm.n; const split=$('trainPercent').value+'/'+$('valPercent').value+'/'+$('testPercent').value; addHistory({algo:ALGOS.find(a=>a.key===state.algorithm).title,dataset:currentDataset().name,split,params:paramSummary(),time,metrics}); $('statusBox').textContent='Lauf abgeschlossen.\nAccuracy: '+pct(metrics.accuracy)+'\nPrecision: '+pct(metrics.precision)+'\nRecall/Sensitivität: '+pct(metrics.recall)+'\nF1-Score: '+pct(metrics.f1); $('progressText').textContent='Metriken berechnet. Ändere Modell oder Datensatz und starte den nächsten Vergleich.'; state.training=false;}},420); }
+    function reset(){ state.algorithm='knn'; state.params={knn:{k:5},logreg:{learningRate:.1,epochs:250,lambda:.01},tree:{maxDepth:4,minSamplesSplit:4}}; state.history=[]; $('datasetSelect').value='rich'; setSplit(60,20,20); renderAlgorithms(); renderParams(); updateDatasetInfo(); ['Accuracy','Precision','Recall','F1'].forEach(k=>{ $('m'+k).textContent='-'; $('g'+k).style.width='0%'; $('b'+k).style.width='0%'; $('b'+k+'Text').textContent='-'; }); $('confusionMatrix').innerHTML=''; $('historyBody').innerHTML='<tr><td colspan="10">Noch keine Läufe vorhanden.</td></tr>'; $('currentModel').textContent='-'; $('trainTime').textContent='-'; $('evalCases').textContent='-'; $('progressBar').style.width='0%'; $('progressText').textContent='Noch kein Training gestartet.'; $('statusBox').textContent='Bereit.'; $('interpretation').textContent='Noch keine Metriken berechnet.'; }
+    function attach(){ $('datasetSelect').onchange=updateDatasetInfo; ['trainPercent','valPercent','testPercent'].forEach(id=>$(id).oninput=()=>normalizeSplit(id)); ['trainSlider','valSlider','testSlider'].forEach(id=>$(id).oninput=()=>normalizeSplit(id.replace('Slider','Percent'))); $('trainBtn').onclick=train; $('resetBtn').onclick=reset; }
+    renderDatasetOptions(); renderAlgorithms(); renderParams(); setSplit(60,20,20); attach();
+  </script>
+</body>
+</html>

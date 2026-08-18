@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Explorative LLM-Testung – Grenzwertanalyse – v1</title>
+<style>
+  :root {
+    --bg: #08111f; --bg2: #111b35; --text: #eef4ff; --muted: #bfd0ee;
+    --blue: #7db0ff; --blue2: #9f85ff; --green: #81e6b3; --yellow: #ffd166; --red: #ff9a9a;
+    --best: #f0c75e; --shadow: 0 18px 44px rgba(0,0,0,.28); --radius: 22px;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { margin:0; color:var(--text); font-family:Inter,Segoe UI,Arial,sans-serif; background:radial-gradient(circle at top right, rgba(125,176,255,.18), transparent 16%),radial-gradient(circle at 16% 18%, rgba(159,133,255,.12), transparent 22%),linear-gradient(180deg, var(--bg) 0%, var(--bg2) 100%); min-height:100vh; }
+  .wrap { max-width:1220px; margin:0 auto; padding:28px 22px 60px; }
+  .kicker{display:inline-block;margin-bottom:10px;padding:6px 10px;border-radius:999px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.08);font-size:.8rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;}
+  .hero { padding:24px; margin-bottom:18px; border-radius:26px; background:linear-gradient(135deg, rgba(125,176,255,.19), rgba(159,133,255,.14)); border:1px solid rgba(255,255,255,.10); box-shadow:var(--shadow); backdrop-filter:blur(18px) saturate(170%); }
+  .hero h2 { margin:0 0 8px; font-size:1.88rem; line-height:1.15; }
+  .hero p { margin:0 0 8px; color:var(--muted); line-height:1.55; }
+  .stepnav { display:flex; gap:10px; flex-wrap:wrap; margin-top:14px; }
+  .stepnav a { text-decoration:none; color:var(--text); padding:8px 15px; border-radius:999px; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.10); font-weight:800; font-size:.86rem; transition:.18s ease; }
+  .stepnav a:hover { background:rgba(255,255,255,.14); transform:translateY(-1px); }
+  .card { padding:20px; margin-bottom:18px; border-radius:var(--radius); background:linear-gradient(180deg, rgba(255,255,255,.085), rgba(255,255,255,.045)); border:1px solid rgba(255,255,255,.09); box-shadow:var(--shadow); backdrop-filter:blur(16px) saturate(180%); position:relative; z-index:1; }
+  .card h3 { margin:0 0 6px; font-size:1.22rem; }
+  .sub { margin:0 0 14px; color:var(--muted); line-height:1.5; }
+  .subhead { display:flex; align-items:center; gap:9px; margin:18px 0 8px; font-size:1.03rem; font-weight:900; color:var(--blue); }
+  .subhead .tag { background:rgba(125,176,255,.16); border:1px solid rgba(125,176,255,.32); color:var(--text); padding:2px 10px; border-radius:999px; font-size:.74rem; }
+  .split-2 { display:grid; grid-template-columns:1fr 1fr; gap:18px; align-items:start; }
+  @media (max-width:940px) { .split-2 { grid-template-columns:1fr; } }
+  .label-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;} label{font-weight:800;} .hint-text{color:var(--muted);font-size:.88rem;line-height:1.45;margin-top:4px;}
+  .tooltip{position:relative;display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;border:1px solid rgba(255,255,255,.15);color:var(--muted);font-size:.78rem;cursor:help;}
+  .tooltip::after{content:attr(data-tip);position:absolute;left:50%;top:calc(100% + 10px);transform:translateX(-50%);width:min(320px,85vw);background:#111a36;color:var(--text);border:1px solid rgba(255,255,255,.2);border-radius:14px;padding:10px 12px;font-size:.82rem;line-height:1.45;box-shadow:var(--shadow);opacity:0;visibility:hidden;transition:.16s ease;z-index:50;pointer-events:none;} .tooltip:hover::after,.tooltip:focus::after{opacity:1;visibility:visible;}
+  input[type="number"],input[type="text"],select,textarea{width:100%;padding:11px 12px;border-radius:14px;border:1px solid rgba(255,255,255,.11);background:#0f1a35;color:var(--text);outline:none;font-family:inherit;}
+  textarea{resize:vertical;min-height:70px;line-height:1.5;}
+  input:focus,select:focus,textarea:focus{border-color:rgba(125,176,255,.62);box-shadow:0 0 0 3px rgba(125,176,255,.14);}
+  button{appearance:none;border:0;cursor:pointer;border-radius:15px;padding:11px 16px;font-weight:800;transition:.18s ease;} .btn-primary{color:white;background:linear-gradient(135deg,var(--blue),var(--blue2));box-shadow:0 12px 28px rgba(125,176,255,.22);} .btn-primary:hover{transform:translateY(-1px);} .btn-secondary{color:var(--text);background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.08);} .btn-secondary:hover{background:rgba(255,255,255,.11);} .btn-row{display:flex;gap:10px;flex-wrap:wrap;} button:disabled{opacity:.5;cursor:not-allowed;}
+  .meta-box{padding:12px 14px;border-radius:16px;background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.09);color:var(--muted);line-height:1.5;font-size:.9rem;}
+  .note{padding:12px 14px;border-radius:16px;background:rgba(125,176,255,.08);border:1px solid rgba(125,176,255,.18);color:var(--muted);font-size:.88rem;line-height:1.5;}
+  .badge{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:999px;background:rgba(125,176,255,.16);color:var(--text);font-size:.8rem;border:1px solid rgba(125,176,255,.28);}
+  .badge.ok{background:rgba(134,230,178,.18);border-color:rgba(134,230,178,.35);color:#c9f7dd;}
+  .badge.warn{background:rgba(255,154,154,.16);border-color:rgba(255,154,154,.34);color:#ffd9d9;}
+  .table-wrap{overflow:auto;border-radius:16px;border:1px solid rgba(255,255,255,.08);margin-top:10px;} table{width:100%;border-collapse:collapse;min-width:520px;} th,td{border:1px solid rgba(255,255,255,.08);padding:8px 10px;text-align:left;font-size:.88rem;} th{background:rgba(255,255,255,.06);} td{background:rgba(255,255,255,.02);}
+  tr.row-correct td{background:rgba(134,230,178,.10);} tr.row-incorrect td{background:rgba(255,154,154,.10);}
+  .quick-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:14px;} @media (max-width:900px){.quick-metrics{grid-template-columns:repeat(2,1fr);}}
+  .quick-metric{padding:16px;border-radius:18px;background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.09);} .quick-metric .l{color:var(--muted);font-size:.86rem;} .quick-metric .v{margin-top:5px;font-size:1.5rem;font-weight:900;}
+  .status-box{white-space:pre-line;min-height:70px;background:#0e1731;color:#dce8ff;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;line-height:1.45;border-radius:16px;border:1px solid rgba(255,255,255,.09);padding:12px 14px;margin-top:12px;}
+  .charter-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;} @media (max-width:760px){.charter-grid{grid-template-columns:1fr;}}
+  .charter-field{padding:12px 14px;border-radius:16px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);}
+  .timer-display{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:2.2rem;font-weight:900;text-align:center;padding:10px 0;}
+  .checkbox-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px;}
+  .checkbox-item{display:flex;align-items:center;gap:8px;padding:9px 12px;border-radius:14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);font-size:.88rem;}
+  .checkbox-item input{width:16px;height:16px;accent-color:var(--blue);}
+  .metrics-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;} @media (max-width:640px){.metrics-grid{grid-template-columns:1fr;}}
+  .metric-donut-card{padding:18px;text-align:center;border-radius:20px;background:linear-gradient(180deg, rgba(255,255,255,.085), rgba(255,255,255,.045));border:1px solid rgba(255,255,255,.09);box-shadow:var(--shadow);}
+  .donut{width:130px;height:130px;border-radius:50%;margin:0 auto 12px;position:relative;display:flex;align-items:center;justify-content:center;background:conic-gradient(var(--clr,var(--blue)) calc(var(--pct,0)*1%), rgba(255,255,255,.08) 0);}
+  .donut::before{content:'';position:absolute;inset:13px;border-radius:50%;background:#101c38;}
+  .donut-value{position:relative;z-index:1;font-size:1.5rem;font-weight:900;}
+  .donut.acc{--clr:var(--blue);} .donut.comp{--clr:var(--green);}
+  .metric-name{font-weight:900;margin-bottom:4px;} .metric-formula{color:var(--muted);font-size:.8rem;font-family:ui-monospace,Menlo,Consolas,monospace;margin-top:6px;line-height:1.4;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <section class="hero">
+    <div class="kicker">Übung 4.2.3</div>
+    <h2>Explorative Testung eines Large Language Models</h2>
+    <p>In dieser Übung testest du explorativ, ob ein LLM zuverlässig <strong>Testfälle mittels Grenzwertanalyse (2-Werte bzw. 3-Werte)</strong> erzeugen kann. Du füllst dazu eine kompakte Test-Charta aus, formulierst einen Prompt, bewertest die (simulierte) LLM-Antwort und prüfst im Debrief selbst, ob die Ausgabe korrekt und vollständig war.</p>
+    <div class="stepnav">
+      <a href="#step1">Schritt 1 · Test-Charta</a>
+      <a href="#step2">Schritt 2 · Szenario &amp; Methode</a>
+      <a href="#step3">Schritt 3 · Prompt &amp; Antwort</a>
+      <a href="#step4">Schritt 4 · Debrief</a>
+    </div>
+  </section>
+
+  <section class="card" id="step1">
+    <h3>Schritt 1: Test-Charta</h3>
+    <p class="sub">Eine Test-Charta hält Mission, Rahmenbedingungen und Beobachtungen einer explorativen Testsession fest. Fülle die Felder aus, bevor du mit dem Testen beginnst.</p>
+    <div class="charter-grid">
+      <div class="charter-field">
+        <div class="label-row"><label for="charterIdField">Charter-ID</label></div>
+        <input id="charterIdField" type="text" readonly>
+      </div>
+      <div class="charter-field">
+        <div class="label-row"><label for="testerField">Tester</label></div>
+        <input id="testerField" type="text" placeholder="Dein Name">
+      </div>
+      <div class="charter-field" style="grid-column:1 / -1;">
+        <div class="label-row"><label for="missionField">Mission</label><span class="tooltip" tabindex="0" data-tip="Die Mission fasst in einem Satz zusammen, was in dieser Session geprüft werden soll. Sie aktualisiert sich automatisch anhand deiner Auswahl in Schritt 2.">?</span></div>
+        <textarea id="missionField" rows="2" readonly></textarea>
+      </div>
+      <div class="charter-field">
+        <div class="label-row"><label for="timeboxSelect">Zeitbudget (Timebox)</label></div>
+        <select id="timeboxSelect">
+          <option value="10">10 Minuten</option>
+          <option value="15">15 Minuten</option>
+          <option value="20" selected>20 Minuten</option>
+          <option value="30">30 Minuten</option>
+        </select>
+        <div class="timer-display" id="timerDisplay">20:00</div>
+        <div class="btn-row" style="justify-content:center;">
+          <button type="button" class="btn-primary" id="timerStartBtn">Timer starten</button>
+          <button type="button" class="btn-secondary" id="timerPauseBtn">Pause</button>
+          <button type="button" class="btn-secondary" id="timerResetBtn">Zurücksetzen</button>
+        </div>
+        <div id="timerBadge" style="text-align:center; margin-top:8px;"><span class="badge">Timer bereit</span></div>
+      </div>
+      <div class="charter-field">
+        <div class="label-row"><label>Testansatz / Fokus</label></div>
+        <div class="checkbox-list">
+          <label class="checkbox-item"><input type="checkbox" checked> Grenzwerte identifizieren</label>
+          <label class="checkbox-item"><input type="checkbox" checked> Gültigkeits-Klassifikation prüfen</label>
+          <label class="checkbox-item"><input type="checkbox" checked> Vollständigkeit prüfen</label>
+          <label class="checkbox-item"> Auffälligkeiten/Sonderfälle notieren</label>
+        </div>
+      </div>
+      <div class="charter-field" style="grid-column:1 / -1;">
+        <div class="label-row"><label for="notesField">Notizen während der Session</label></div>
+        <textarea id="notesField" rows="3" placeholder="Beobachtungen, Auffälligkeiten, spontane Testideen ..."></textarea>
+      </div>
+    </div>
+  </section>
+
+  <div class="split-2">
+    <section class="card" id="step2">
+      <h3>Schritt 2: Testszenario &amp; Grenzwert-Methode</h3>
+      <p class="sub">Wähle die Spezifikation, die das LLM mit Grenzwert-Testfällen abdecken soll, sowie die gewünschte Methode.</p>
+
+      <div class="subhead"><span class="tag">2a</span> Spezifikation</div>
+      <div class="label-row"><label for="specSelect">Zu testende Spezifikation</label></div>
+      <select id="specSelect"></select>
+      <div id="specText" class="meta-box" style="margin-top:8px;"></div>
+
+      <div class="subhead"><span class="tag">2b</span> Grenzwert-Methode</div>
+      <div class="label-row"><label>Methode</label><span class="tooltip" tabindex="0" data-tip="2-Werte-BVA prüft nur min und max. 3-Werte-BVA prüft zusätzlich je einen Wert direkt innerhalb und außerhalb der Grenze (min−1, min, min+1, max−1, max, max+1).">?</span></div>
+      <div class="checkbox-list">
+        <label class="checkbox-item"><input type="radio" name="method" value="2"> 2-Werte-BVA (min, max)</label>
+        <label class="checkbox-item"><input type="radio" name="method" value="3" checked> 3-Werte-BVA (min−1, min, min+1, max−1, max, max+1)</label>
+      </div>
+      <div class="hint-text" id="methodHint" style="margin-top:8px;"></div>
+    </section>
+
+    <section class="card" id="step3">
+      <h3>Schritt 3: Prompt stellen &amp; Antwort erhalten</h3>
+      <p class="sub">Formuliere den Prompt, den du dem LLM stellen würdest, und fordere anschließend eine (simulierte) Antwort an.</p>
+      <div class="label-row"><label for="promptField">Dein Prompt an das LLM</label></div>
+      <textarea id="promptField" rows="3"></textarea>
+      <div class="btn-row" style="margin-top:10px;">
+        <button type="button" class="btn-primary" id="generateBtn">Antwort generieren (simuliert)</button>
+      </div>
+      <div id="statusBox" class="status-box">Noch keine Antwort angefordert.</div>
+      <div class="table-wrap" id="llmTableWrap" style="display:none;">
+        <table>
+          <thead><tr><th>#</th><th>Eingabewert</th><th>LLM sagt</th><th>Deine Einschätzung: LLM korrekt?</th></tr></thead>
+          <tbody id="llmTableBody"></tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  <section class="card" id="step4">
+    <h3>Schritt 4: Session-Debrief</h3>
+    <p class="sub">Prüfe abschließend, wie korrekt und vollständig die LLM-Antwort tatsächlich war, und vergleiche sie mit deiner eigenen Einschätzung.</p>
+    <div class="btn-row">
+      <button type="button" class="btn-secondary" id="revealBtn" disabled>Musterlösung &amp; Auswertung anzeigen</button>
+    </div>
+    <div id="revealArea" style="display:none;">
+      <div class="metrics-grid" style="margin-top:14px;">
+        <div class="metric-donut-card">
+          <div class="donut acc" id="donutCorrectness"><span class="donut-value">0 %</span></div>
+          <div class="metric-name">Korrektheit der LLM-Antwort</div>
+          <div class="metric-formula">Korrekt klassifizierte Werte / alle gelieferten Werte</div>
+        </div>
+        <div class="metric-donut-card">
+          <div class="donut comp" id="donutCompleteness"><span class="donut-value">0 %</span></div>
+          <div class="metric-name">Vollständigkeit der LLM-Antwort</div>
+          <div class="metric-formula">Abgedeckte Pflicht-Grenzwerte / geforderte Grenzwerte</div>
+        </div>
+      </div>
+      <div class="quick-metrics">
+        <div class="quick-metric"><div class="l">Deine Trefferquote</div><div class="v" id="hitRateQuick">–</div></div>
+        <div class="quick-metric"><div class="l">Fehlende Grenzwerte</div><div class="v" id="missingCountQuick">–</div></div>
+      </div>
+      <div class="note" id="missingList" style="margin-top:12px;"></div>
+      <div class="charter-field" style="margin-top:14px;">
+        <div class="label-row"><label for="debriefField">Fazit der Session</label></div>
+        <textarea id="debriefField" rows="3" placeholder="Was hat das LLM gut gemacht? Wo hat es Fehler gemacht? Was würdest du beim nächsten Mal anders prompten?"></textarea>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+  const SPECS = [
+    { key:'age', label:'Alter für Mitgliedschaft', text:'Das Eingabefeld „Alter" akzeptiert nur ganze Zahlen zwischen 18 und 65 (jeweils inklusive).', min:18, max:65 },
+    { key:'qty', label:'Bestellmenge im Warenkorb', text:'Die Bestellmenge muss eine ganze Zahl zwischen 1 und 100 sein (jeweils inklusive).', min:1, max:100 },
+    { key:'pwd', label:'Passwortlänge', text:'Ein Passwort muss zwischen 8 und 20 Zeichen lang sein (jeweils inklusive).', min:8, max:20 },
+    { key:'temp', label:'Sensor-Temperaturbereich', text:'Der Temperatursensor akzeptiert ganzzahlige Werte zwischen −20 °C und 50 °C (jeweils inklusive).', min:-20, max:50 },
+    { key:'discount', label:'Rabattcode-Länge', text:'Ein Rabattcode muss zwischen 5 und 10 Zeichen lang sein (jeweils inklusive).', min:5, max:10 },
+    { key:'percent', label:'Fortschrittsanzeige in Prozent', text:'Der Fortschrittswert eines Ladebalkens liegt zwischen 0 und 100 (jeweils inklusive).', min:0, max:100 }
+  ];
+
+  const state = {
+    charterId: 'TC-' + Math.floor(100 + Math.random()*900),
+    specKey: 'age',
+    method: '3',
+    timeboxMinutes: 20,
+    timerRemaining: 20*60,
+    timerRunning: false,
+    timerInterval: null,
+    llmCases: [],
+    revealed: false
+  };
+  function $(id){ return document.getElementById(id); }
+  function currentSpec(){ return SPECS.find(s=>s.key===state.specKey); }
+
+  function trueValidity(spec, value){ return (value>=spec.min && value<=spec.max) ? 'valid' : 'invalid'; }
+  function requiredValues(spec, method){ return method==='2' ? [spec.min, spec.max] : [spec.min-1, spec.min, spec.min+1, spec.max-1, spec.max, spec.max+1]; }
+  function buildCorrectCases(spec, method){ return requiredValues(spec, method).map(v=>({ value:v, expected: trueValidity(spec, v) })); }
+
+  function generateLlmResponse(spec, method){
+    const correct = buildCorrectCases(spec, method);
+    let cases = correct.map(c=>({ value: c.value, stated: c.expected, judgement: null }));
+    const numFlaws = 1 + Math.floor(Math.random()*2);
+    for (let i=0; i<numFlaws; i++){
+      const type = Math.floor(Math.random()*4);
+      const idx = Math.floor(Math.random()*cases.length);
+      if (type===0 && cases.length>2){
+        cases.splice(idx,1);
+      } else if (type===1){
+        cases[idx].stated = cases[idx].stated==='valid' ? 'invalid' : 'valid';
+      } else if (type===2){
+        cases.push({ value: cases[idx].value, stated: cases[idx].stated, judgement: null });
+      } else {
+        const shifted = cases[idx].value + (Math.random()<0.5 ? -1 : 1);
+        cases[idx] = { value: shifted, stated: trueValidity(spec, shifted), judgement: null };
+      }
+    }
+    return cases;
+  }
+
+  function renderSpecSelect(){
+    $('specSelect').innerHTML = SPECS.map(s=>'<option value="'+s.key+'">'+s.label+'</option>').join('');
+    $('specSelect').value = state.specKey;
+  }
+  function renderSpecText(){
+    const spec = currentSpec();
+    $('specText').innerHTML = spec.text + '<br><strong>Grenzen:</strong> min = '+spec.min+', max = '+spec.max;
+  }
+  function renderMethodHint(){
+    const spec = currentSpec();
+    const vals = requiredValues(spec, state.method);
+    $('methodHint').textContent = 'Erwartete Grenzwerte für diese Methode: ' + vals.join(', ') + '.';
+  }
+  function renderMission(){
+    const spec = currentSpec();
+    const methodLabel = state.method==='2' ? '2-Werte' : '3-Werte';
+    $('missionField').value = 'Teste, ob das LLM zuverlässig ' + methodLabel + '-Grenzwert-Testfälle für „' + spec.label + '" erzeugen kann (Fokus: Korrektheit und Vollständigkeit der Testfälle).';
+  }
+  function renderSuggestedPrompt(){
+    const spec = currentSpec();
+    const methodLabel = state.method==='2' ? '2-Werte-Grenzwertanalyse (nur Minimum und Maximum)' : '3-Werte-Grenzwertanalyse (jeweils einen Wert unter, auf und über der Grenze)';
+    $('promptField').value = 'Erzeuge Testfälle mittels ' + methodLabel + ' für folgende Spezifikation: ' + spec.text + ' Gib für jeden Testfall den Eingabewert und an, ob er gültig oder ungültig ist.';
+  }
+
+  function formatTime(totalSeconds){
+    const s = Math.max(0, totalSeconds);
+    const m = Math.floor(s/60), r = s%60;
+    return String(m).padStart(2,'0') + ':' + String(r).padStart(2,'0');
+  }
+  function renderTimerDisplay(){ $('timerDisplay').textContent = formatTime(state.timerRemaining); }
+  function renderTimerBadge(expired){
+    if (expired) $('timerBadge').innerHTML = '<span class="badge warn">Zeit abgelaufen</span>';
+    else if (state.timerRunning) $('timerBadge').innerHTML = '<span class="badge ok">Timer läuft</span>';
+    else $('timerBadge').innerHTML = '<span class="badge">Timer bereit</span>';
+  }
+  function startTimer(){
+    if (state.timerRunning || state.timerRemaining<=0) return;
+    state.timerRunning = true;
+    renderTimerBadge(false);
+    state.timerInterval = setInterval(()=>{
+      state.timerRemaining--;
+      if (state.timerRemaining<=0){
+        state.timerRemaining = 0;
+        clearInterval(state.timerInterval);
+        state.timerInterval = null;
+        state.timerRunning = false;
+        renderTimerDisplay();
+        renderTimerBadge(true);
+        return;
+      }
+      renderTimerDisplay();
+    }, 1000);
+  }
+  function pauseTimer(){
+    if (state.timerInterval) clearInterval(state.timerInterval);
+    state.timerInterval = null;
+    state.timerRunning = false;
+    renderTimerBadge(false);
+  }
+  function resetTimer(){
+    pauseTimer();
+    state.timerRemaining = state.timeboxMinutes*60;
+    renderTimerDisplay();
+    renderTimerBadge(false);
+  }
+
+  function renderLlmTable(){
+    const wrap = $('llmTableWrap'), body = $('llmTableBody');
+    if (!state.llmCases.length){ wrap.style.display = 'none'; return; }
+    wrap.style.display = 'block';
+    body.innerHTML = state.llmCases.map((c,idx)=>
+      '<tr><td>'+(idx+1)+'</td><td>'+c.value+'</td><td>'+(c.stated==='valid'?'gültig':'ungültig')+'</td><td>'+
+      '<select data-idx="'+idx+'" class="judgeSelect"><option value="">– bewerten –</option><option value="richtig">Richtig</option><option value="falsch">Falsch</option></select>'+
+      '</td></tr>'
+    ).join('');
+    Array.from(body.querySelectorAll('.judgeSelect')).forEach(sel=>{
+      sel.addEventListener('change', ()=>{ state.llmCases[Number(sel.dataset.idx)].judgement = sel.value || null; });
+    });
+  }
+
+  function status(text){ $('statusBox').textContent = text; }
+
+  function onGenerate(){
+    const spec = currentSpec();
+    state.llmCases = generateLlmResponse(spec, state.method);
+    state.revealed = false;
+    $('revealArea').style.display = 'none';
+    $('revealBtn').disabled = false;
+    renderLlmTable();
+    status('Simulierte LLM-Antwort erhalten: ' + state.llmCases.length + ' Testfälle für „' + spec.label + '" (' + (state.method==='2'?'2-Werte':'3-Werte') + '-BVA).\nBewerte jetzt in der Tabelle, ob die Aussage des LLM zu jedem Wert korrekt ist.');
+  }
+
+  function setDonut(id, pct){ const el = $(id); el.style.setProperty('--pct', pct.toFixed(1)); el.querySelector('.donut-value').textContent = pct.toFixed(1)+' %'; }
+
+  function onReveal(){
+    const spec = currentSpec();
+    const required = requiredValues(spec, state.method);
+    let correctCount = 0, judgedTotal = 0, judgedHits = 0;
+    state.llmCases.forEach(c=>{
+      const trueVal = trueValidity(spec, c.value);
+      const rowCorrect = c.stated === trueVal;
+      if (rowCorrect) correctCount++;
+      if (c.judgement){
+        judgedTotal++;
+        const studentSaysCorrect = c.judgement === 'richtig';
+        if (studentSaysCorrect === rowCorrect) judgedHits++;
+      }
+    });
+    const correctness = state.llmCases.length ? correctCount/state.llmCases.length : 0;
+    const coveredRequired = required.filter(v => state.llmCases.some(c=>c.value===v));
+    const completeness = required.length ? coveredRequired.length/required.length : 0;
+    const missing = required.filter(v => !coveredRequired.includes(v));
+
+    // Zeilen einfärben und tatsächliche Gültigkeit ergänzen
+    const body = $('llmTableBody');
+    body.innerHTML = state.llmCases.map((c,idx)=>{
+      const trueVal = trueValidity(spec, c.value);
+      const rowCorrect = c.stated === trueVal;
+      return '<tr class="'+(rowCorrect?'row-correct':'row-incorrect')+'"><td>'+(idx+1)+'</td><td>'+c.value+'</td><td>'+(c.stated==='valid'?'gültig':'ungültig')+
+        '</td><td>'+(c.judgement ? (c.judgement==='richtig'?'Richtig':'Falsch') : '–')+' · tatsächlich: '+(trueVal==='valid'?'gültig':'ungültig')+' ('+(rowCorrect?'✓':'✗')+')</td></tr>';
+    }).join('');
+
+    setDonut('donutCorrectness', correctness*100);
+    setDonut('donutCompleteness', completeness*100);
+    $('hitRateQuick').textContent = judgedTotal ? Math.round(100*judgedHits/judgedTotal)+' % ('+judgedHits+'/'+judgedTotal+')' : 'keine Bewertung abgegeben';
+    $('missingCountQuick').textContent = missing.length + ' von ' + required.length;
+    $('missingList').textContent = missing.length ? 'Vom LLM nicht abgedeckte Pflicht-Grenzwerte: ' + missing.join(', ') + '.' : 'Alle geforderten Grenzwerte wurden von der LLM-Antwort abgedeckt.';
+    $('revealArea').style.display = 'block';
+    state.revealed = true;
+  }
+
+  function resetForNewSpecOrMethod(){
+    state.llmCases = [];
+    state.revealed = false;
+    $('llmTableWrap').style.display = 'none';
+    $('revealArea').style.display = 'none';
+    $('revealBtn').disabled = true;
+    status('Noch keine Antwort angefordert.');
+  }
+
+  function attachEvents(){
+    $('charterIdField').value = state.charterId;
+    $('specSelect').addEventListener('change', ()=>{ state.specKey = $('specSelect').value; renderSpecText(); renderMethodHint(); renderMission(); renderSuggestedPrompt(); resetForNewSpecOrMethod(); });
+    Array.from(document.querySelectorAll('input[name="method"]')).forEach(r=>r.addEventListener('change', ()=>{ state.method = r.value; renderMethodHint(); renderMission(); renderSuggestedPrompt(); resetForNewSpecOrMethod(); }));
+    $('timeboxSelect').addEventListener('change', ()=>{ state.timeboxMinutes = Number($('timeboxSelect').value); resetTimer(); });
+    $('timerStartBtn').addEventListener('click', startTimer);
+    $('timerPauseBtn').addEventListener('click', pauseTimer);
+    $('timerResetBtn').addEventListener('click', resetTimer);
+    $('generateBtn').addEventListener('click', onGenerate);
+    $('revealBtn').addEventListener('click', onReveal);
+  }
+
+  renderSpecSelect();
+  renderSpecText();
+  renderMethodHint();
+  renderMission();
+  renderSuggestedPrompt();
+  renderTimerDisplay();
+  renderTimerBadge(false);
+  attachEvents();
+</script>
+</body>
+</html>

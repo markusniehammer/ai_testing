@@ -1,0 +1,933 @@
+<!DOCTYPE html>
+
+<html lang="de">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Workflow zur Datenvorbereitung – v16.1</title>
+<style>
+:root{--bg:#08111f;--bg2:#111b35;--text:#eef4ff;--muted:#bfd0ee;--blue:#7db0ff;--violet:#9f85ff;--green:#81e6b3;--yellow:#ffd166;--red:#ff9a9a;--shadow:0 18px 44px rgba(0,0,0,.28);--radius:20px}
+*{box-sizing:border-box} html{scroll-behavior:smooth}
+body{margin:0;color:var(--text);font-family:Inter,Segoe UI,Arial,sans-serif;background:radial-gradient(circle at top right,rgba(125,176,255,.18),transparent 16%),radial-gradient(circle at 16% 18%,rgba(159,133,255,.12),transparent 22%),linear-gradient(180deg,var(--bg) 0%,var(--bg2) 100%);min-height:100vh}
+.app{display:grid;grid-template-columns:320px minmax(0,1fr);min-height:100vh}.sidebar{position:sticky;top:0;height:100vh;padding:22px 18px;background:rgba(8,16,32,.72);backdrop-filter:blur(18px) saturate(160%);border-right:1px solid rgba(255,255,255,.08);overflow-y:auto}.main{padding:28px 28px 200px}
+.card{border-radius:var(--radius);background:linear-gradient(180deg,rgba(255,255,255,.10),rgba(255,255,255,.04));border:1px solid rgba(255,255,255,.10);box-shadow:var(--shadow);backdrop-filter:blur(16px) saturate(180%)}
+.brand,.sidebar-group,.hero,.section,.subcard,.statusbox,.progress-shell,.preview{border-radius:var(--radius)}
+.brand,.sidebar-group,.hero,.section,.subcard,.statusbox,.progress-shell,.preview{background:linear-gradient(180deg,rgba(255,255,255,.10),rgba(255,255,255,.04));border:1px solid rgba(255,255,255,.10);box-shadow:var(--shadow);backdrop-filter:blur(16px) saturate(180%)}
+.brand{padding:16px;margin-bottom:18px}.brand h1{margin:0 0 7px;font-size:1.18rem}.brand p{margin:0;color:var(--muted);font-size:.92rem;line-height:1.45}
+.menu-title{margin:14px 8px 10px;color:var(--muted);font-size:.78rem;letter-spacing:.08em;text-transform:uppercase}.step-menu{display:grid;gap:8px}
+.sidebar-group{padding:10px;margin:10px 0 12px;background:rgba(255,255,255,.04)}.sidebar-group.step1{box-shadow:inset 0 0 0 1px rgba(125,176,255,.18),var(--shadow)}.sidebar-group.step2{box-shadow:inset 0 0 0 1px rgba(255,209,102,.18),var(--shadow)}.sidebar-group.step3{box-shadow:inset 0 0 0 1px rgba(129,230,179,.18),var(--shadow)}
+.sidebar-group-title{padding:8px 10px;margin:0 0 8px;border-radius:14px;font-size:.82rem;font-weight:900;letter-spacing:.04em}.t1{background:rgba(125,176,255,.16)}.t2{background:rgba(255,209,102,.16)}.t3{background:rgba(129,230,179,.16)}
+.step-link{display:block;text-decoration:none;color:var(--text);padding:12px 14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:15px}.step-link.active{background:linear-gradient(135deg,rgba(125,176,255,.22),rgba(159,133,255,.14));border-color:rgba(125,176,255,.38)}.step-link .idx{display:block;color:var(--blue);font-weight:800;font-size:.78rem;margin-bottom:4px}.step-link .hint{display:block;color:var(--muted);font-size:.82rem;margin-top:2px}
+.kicker{display:inline-block;margin-bottom:10px;padding:6px 10px;border-radius:999px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.08);font-size:.8rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.hero{padding:24px;margin-bottom:18px;background:linear-gradient(135deg,rgba(125,176,255,.19),rgba(159,133,255,.14))}.hero h2{margin:0 0 8px;font-size:1.88rem}.hero p{margin:0 0 10px;color:var(--muted);line-height:1.55}.hero ul{margin:8px 0 0 18px;color:var(--muted)}
+.section{padding:20px;margin-bottom:18px}.s1{border-left:5px solid rgba(125,176,255,.55)}.s2{border-left:5px solid rgba(255,209,102,.60)}.s3{border-left:5px solid rgba(129,230,179,.55)}.section h2{margin:0 0 4px;font-size:1.25rem}.caption{margin:0 0 16px;color:var(--muted)}
+.subcards{display:grid;gap:14px}.subcard{padding:18px;background:linear-gradient(180deg,rgba(255,255,255,.085),rgba(255,255,255,.045))}.subcard h3{margin:0 0 4px}.subtitle{margin:0 0 12px;color:var(--blue);font-weight:700}.sub{margin:0 0 16px;color:var(--muted);line-height:1.5}
+.grid2,.grid3{display:grid;gap:14px}.grid2{grid-template-columns:repeat(2,minmax(0,1fr))}.grid3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.check-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px}.check-item{display:flex;gap:10px;padding:12px;border-radius:16px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08)}
+label{font-weight:800}.label-row{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+input[type=text],input[type=number],select{width:100%;padding:11px 12px;border-radius:14px;border:1px solid rgba(255,255,255,.11);background:#0f1a35;color:var(--text);outline:none}input[type=range]{width:100%;accent-color:var(--blue)}input[type=checkbox]{accent-color:var(--blue)}
+button{appearance:none;border:0;cursor:pointer;border-radius:15px;padding:11px 16px;font-weight:800}.btn-primary{color:#fff;background:linear-gradient(135deg,var(--blue),var(--violet))}.btn-secondary{color:var(--text);background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.08)}.btn-success{color:#def8ea;background:rgba(129,230,179,.10);border:1px solid rgba(129,230,179,.30)}.btn-ghost{color:var(--text);background:rgba(255,255,255,.06);border:1px dashed rgba(255,255,255,.16)}.btn-row{display:flex;gap:10px;flex-wrap:wrap}.btn-right{justify-content:flex-end}.btn-disabled{opacity:.45;cursor:not-allowed}
+.table-wrap{overflow:auto;border-radius:18px;border:1px solid rgba(255,255,255,.08)}table{width:100%;border-collapse:collapse}th,td{border:1px solid rgba(255,255,255,.08);padding:8px 10px;text-align:left}th{background:rgba(255,255,255,.06)}td{background:rgba(255,255,255,.02)}
+.statusbox,.preview{padding:14px;background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.09);box-shadow:var(--shadow)}.statusbox{white-space:pre-line;min-height:120px;background:#0e1731;color:#dce8ff;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;line-height:1.45}
+.bar-track{height:16px;border-radius:999px;overflow:hidden;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08)}.bar-fill{height:100%;width:0}.yellow{background:#ffd166}.red{background:#ff9a9a}.blue{background:#73abff}
+.preview{margin-top:10px}.hidden{display:none}
+.progress-shell{position:fixed;left:calc(320px + 28px);right:28px;bottom:12px;z-index:30;padding:18px;background:linear-gradient(180deg,rgba(255,255,255,.22),rgba(255,255,255,.12));border:1px solid rgba(255,255,255,.22);box-shadow:0 10px 30px rgba(0,0,0,.35)}.progress-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:10px}.progress-title{font-weight:800}.progress-text{color:#e3edff;font-size:.95rem}.progress-track{height:22px;border-radius:999px;overflow:hidden;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.10)}.progress-fill{height:100%;width:0%;background:linear-gradient(90deg,#7db0ff,#9f85ff)}
+@media (max-width:1100px){.app{grid-template-columns:1fr}.sidebar{position:relative;height:auto;border-right:0;border-bottom:1px solid rgba(255,255,255,.08)}.progress-shell{left:16px;right:16px}}@media (max-width:900px){.main{padding:16px 16px 220px}.sidebar{padding:16px}.grid2,.grid3{grid-template-columns:1fr}.check-list{grid-template-columns:1fr}.progress-shell{left:12px;right:12px}}
+
+.panel-header button{line-height:1}.panel-body.hidden{display:none}
+.step-link{position:relative}
+.step-link.locked{opacity:.42;pointer-events:none}
+.step-link.done{box-shadow:inset 0 0 0 1px rgba(129,230,179,.42)}
+.done-check{display:none;color:#b9f4d7;font-weight:900;margin-left:8px}
+.step-link.done .done-check{display:inline}
+
+
+.hint-text{color:var(--muted);font-size:.89rem;line-height:1.45;margin-top:4px;}
+.subcard.step-locked{opacity:.55;filter:saturate(.75)}
+.step-link.locked{opacity:.42;pointer-events:none}
+.step-link.done{box-shadow:inset 0 0 0 1px rgba(129,230,179,.42)}
+.done-check{display:none;color:#b9f4d7;font-weight:900;margin-left:8px}
+.step-link.done .done-check{display:inline}
+
+
+
+.subcard.step-locked{opacity:.58;filter:saturate(.78)}
+.subcard.step-locked .panel-header label,.subcard.step-locked .sub,.subcard.step-locked .subtitle{opacity:.95}
+
+
+
+.info-tip{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;border:1px solid rgba(255,255,255,.18);font-size:.76rem;color:var(--muted);cursor:help;background:rgba(255,255,255,.04)}
+.inline-range{display:grid;grid-template-columns:minmax(0,1fr) 90px;gap:10px;align-items:end}
+.text-like{padding:11px 12px;border-radius:14px;border:1px solid rgba(255,255,255,.11);background:#0f1a35;color:var(--text);min-height:44px;display:flex;align-items:center}
+.feature-note{margin:0 0 14px;color:var(--muted);line-height:1.5}
+
+
+
+.table-wrap{max-width:100%;overflow:auto}
+.preview .table-wrap,.preview-panel .table-wrap{max-width:100%;overflow:auto}
+table{table-layout:auto}
+th,td{font-size:.84rem;line-height:1.35;white-space:nowrap}
+
+</style>
+</head>
+<body>
+<div class="app">
+<aside class="sidebar">
+<div class="brand">
+<h1>Datenvorbereitung</h1>
+</div>
+<div class="menu-title">Navigation</div>
+<div class="sidebar-group step1">
+<div class="sidebar-group-title t1">Datenbeschaffung</div>
+<div class="step-menu"><a class="step-link active" data-step="step1_1" href="#step1_1"><span class="idx">1.1</span><span>Identifizierung<span class="done-check">✓</span></span><span class="hint">Identifying relevant data types</span></a><a class="step-link locked" data-step="step1_2" href="#step1_2"><span class="idx">1.2</span><span>Erfassung<span class="done-check">✓</span></span><span class="hint">Gathering data</span></a><a class="step-link locked" data-step="step1_3" href="#step1_3"><span class="idx">1.3</span><span>Kennzeichnung<span class="done-check">✓</span></span><span class="hint">Labeling
+            data</span></a></div>
+</div>
+<div class="sidebar-group step2">
+<div class="sidebar-group-title t2">Vorverarbeitung der Daten</div>
+<div class="step-menu"><a class="step-link locked" data-step="step2_1" href="#step2_1"><span class="idx">2.1</span><span>Bereinigung<span class="done-check">✓</span></span></a><a class="step-link locked" data-step="step2_2" href="#step2_2"><span class="idx">2.2</span><span>Umwandlung<span class="done-check">✓</span></span></a><a class="step-link locked" data-step="step2_3" href="#step2_3"><span class="idx">2.3</span><span>Anreicherung<span class="done-check">✓</span></span></a><a class="step-link locked" data-step="step2_4" href="#step2_4"><span class="idx">2.4</span><span>Stichprobenerhebung<span class="done-check">✓</span></span></a></div>
+</div>
+<div class="sidebar-group step3">
+<div class="sidebar-group-title t3">Merkmalsermittlung</div>
+<div class="step-menu"><a class="step-link locked" data-step="step3_1" href="#step3_1"><span class="idx">3.1</span><span>Auswahl und Extraktion von Merkmalen<span class="done-check">✓</span></span></a></div>
+</div>
+</aside>
+<main class="main">
+<section class="hero">
+<div class="kicker">Übung 3.2.2</div>
+<h2>Workflow zur Datenvorbereitung</h2>
+<p>Für ein E-Commerce-Unternehmen möchten wir mit Hilfe von KI bestimmen, ob ein verkaufter Artikel
+        <strong>möglicherweise retourniert wird oder nicht</strong>. Dafür soll ein <strong>Klassifikator</strong>
+        genutzt werden. Damit dieser Klassifikator später trainiert werden kann, benötigen wir geeignete Daten und
+        bereiten sie in den folgenden Schritten für das spätere Training auf.</p>
+<p><strong>Materialien / Rahmen</strong></p>
+<ul>
+<li>Bibliotheken für Datenverarbeitung: Pures Javascript. Alternativen: numpy oder pandas (python)</li>
+<li>ML-Entwicklungsframework: Diese Webseite. Alternativen: scikit-learn, Tensorflow</li>
+<li>Werkzeuge für Datenanalyse und Visualisierung: HTML. Alternativen: matplotlib (python) oder Plotly</li>
+</ul>
+</section>
+<section class="section card s1">
+<h2>Datenbeschaffung</h2>
+<p class="caption">Data acquisition</p>
+<div class="subcards">
+<section class="subcard" id="step1_1">
+<h3>1.1 Identifizierung</h3>
+<p class="subtitle">(Identifying relevant data types)</p>
+<p class="sub">Zunächst müssen wir festlegen, nach welchen Arten von Daten wir überhaupt suchen sollen. Identifiziere dazu für die Aufgabe relevante Datentypen.</p>
+<div class="label-row"><label>Relevante Datentypen markieren</label></div>
+<div class="check-list" id="datatypeList"></div>
+<div class="statusbox" id="datatypeInfo" style="margin-top:12px">Noch keine Datentypen ausgewählt.</div>
+<div class="btn-row btn-right" style="margin-top:14px"><button class="btn-primary btn-disabled" disabled="" id="next1_1">Weiter</button></div>
+</section>
+<section class="subcard" id="step1_2">
+<h3>1.2 Erfassung</h3>
+<p class="subtitle">(Gathering data)</p>
+<p class="sub">Nun beginnen wir, die Daten aus unterschiedlichen Quellen zusammenzustellen. Das kann durch Downloads, Einbindung von Verzeichnissen, Abfrage von Sensordaten, APIs oder Datenpipelines geschehen. Hier nutzen wir zur Vereinfachung ein bereits vorbereitetes fixes Dataset.</p>
+<div class="label-row"><label>Datensatz (fix)</label></div>
+<div class="grid2" style="grid-template-columns:minmax(0,1fr) auto;align-items:end;margin-top:10px">
+<div class="grid2" style="grid-template-columns:minmax(0,1fr) auto;align-items:end;margin-top:10px"><select disabled="">
+<option>E-Commerce Retouren-Dataset</option>
+</select><button class="btn-primary" id="loadDatasetBtn">Datensatz laden</button></div>
+</div>
+<div class="hint-text">https://archive.ics.uci.edu/dataset/352/online+retail</div>
+<div style="margin-top:16px">
+<div class="preview-panel" id="panel_raw">
+<div class="label-row panel-header" style="justify-content:space-between;margin-bottom:10px">
+<label>Datenansicht (Rohdaten)</label><button class="btn-secondary panel-toggle btn-disabled" disabled="" id="toggle_raw" style="padding:6px 10px;min-width:42px" type="button">v</button></div>
+<div class="panel-body hidden" id="rawPreviewBody">
+<div class="table-wrap">
+<div class="table-wrap" id="rawPreview"></div>
+</div>
+</div>
+</div>
+</div>
+<div class="btn-row btn-right" style="margin-top:14px"><button class="btn-primary btn-disabled" disabled="" id="next1_2">Weiter</button></div>
+</section>
+<section class="subcard" id="step1_3">
+<h3>1.3 Kennzeichnung</h3>
+<p class="subtitle">(Labeling data)</p>
+<p class="sub">Wähle das geeignete Kennzeichen (Label) für die spätere Klassifikation aus und prüfe es.</p>
+<div class="grid2" style="grid-template-columns:minmax(0,1fr) auto;align-items:end">
+<div><label for="labelSelect">Mögliches Kennzeichen auswählen</label><select id="labelSelect"></select>
+</div><button class="btn-primary" id="checkLabelBtn">Kennzeichen prüfen</button>
+</div>
+<div class="statusbox" id="labelStatus">Noch keine Label-Prüfung durchgeführt.</div>
+<div class="btn-row btn-right" style="margin-top:14px"><button class="btn-primary btn-disabled" disabled="" id="next1_3">Weiter</button></div>
+</section>
+</div>
+</section>
+<section class="section card s2">
+<h2>Vorverarbeitung der Daten</h2>
+<p class="caption">Data preprocessing</p>
+<div class="subcards">
+<section class="subcard" id="step2_1">
+<h3>2.1 Bereinigung</h3>
+<p class="subtitle">(Cleaning data)</p>
+<p class="sub">Zuerst betrachten wir die Datenqualität. Danach wenden wir Reinigungsmaßnahmen an und aktualisieren die Daten.</p>
+<div class="btn-row" style="margin-bottom:14px"><button class="btn-primary" id="analyzeQualityBtn">Datenqualität analysieren</button></div>
+<div class="statusbox" id="cleaningBox">Noch keine Analyse durchgeführt.</div>
+<div class="label-row" style="margin-top:14px"><label>Korrekturen auswählen</label></div>
+<div>
+<div class="check-list"><label class="check-item"><input disabled="" id="cleanDuplicates" type="checkbox"/><span><strong>Duplikate entfernen</strong></span></label><label class="check-item"><input disabled="" id="cleanLabels" type="checkbox"/><span><strong>Labels
+                    normalisieren</strong></span></label><label class="check-item"><input disabled="" id="removeMissingLabel" type="checkbox"/><span><strong>Zeilen ohne Label
+                    verwerfen</strong></span></label><label class="check-item"><input disabled="" id="cleanOutliers" type="checkbox"/><span><strong>Ausreißer entfernen</strong></span></label><label class="check-item"><input disabled="" id="cleanDataErrors" type="checkbox"/><span><strong>Datenfehler entfernen</strong></span></label><label class="check-item"><input disabled="" id="anonymizeData" type="checkbox"/><span><strong>Anonymisieren</strong></span></label></div>
+<div class="grid2" style="margin-top:12px">
+<div><label for="missingNumeric">Numerische Imputation <span class="info-tip" title="Mittelwert = Durchschnitt; Median = mittlerer Wert; Mode = häufigster Wert.">?</span></label><select disabled="" id="missingNumeric"><option value="none">Keine</option><option value="mean">Mittelwert</option><option value="median">Median</option><option value="mode">Mode</option></select></div>
+<div><label for="missingCategorical">Kategoriale Imputation <span class="info-tip" title="Keine = leer lassen; Häufigster Wert = häufigste Kategorie; Unbekannt = Platzhalter setzen.">?</span></label><select disabled="" id="missingCategorical"><option value="none">Keine</option><option value="mode">Häufigster Wert</option><option value="unknown">Unbekannt</option></select></div>
+</div>
+</div>
+<div class="btn-row btn-right" style="margin-top:14px"><button class="btn-primary btn-disabled" disabled="" id="applyCleaningBtn">Bereinigung anwenden</button></div>
+<div class="preview" id="panel_2_1" style="margin-top:14px">
+<div class="label-row panel-header" style="justify-content:space-between;margin-bottom:10px">
+<label>Datenansicht (bereinigte Daten)</label><button class="btn-secondary panel-toggle btn-disabled" disabled="" id="toggle_2_1" style="padding:6px 10px;min-width:42px" type="button">v</button></div>
+<div class="panel-body hidden" id="preview2aBody">
+<div class="table-wrap">
+<div class="table-wrap" id="preview2aTable"></div>
+</div>
+</div>
+</div>
+<div class="btn-row btn-right" style="margin-top:14px"><button class="btn-primary btn-disabled" disabled="" id="next2_1">Weiter</button></div>
+</section>
+<section class="subcard" id="step2_2">
+<h3>2.2 Umwandlung</h3>
+<p class="subtitle">(Transforming data formats, scaling, and normalizing)</p>
+<p class="sub">Lege pro Merkmal fest, in welchem Format es später für das Modell benötigt wird. Das bereits
+            gewählte Kennzeichen bleibt fix.</p>
+<div class="grid2" style="margin-bottom:14px">
+<div><label>Gewähltes Kennzeichen</label><input disabled="" id="lockedLabel" type="text" value="Retoure"/>
+</div>
+</div>
+<div class="table-wrap">
+<table>
+<thead>
+<tr>
+<th>Merkmal</th>
+<th>Datentyp im Rohdatensatz</th>
+<th>Zielformat fürs Modell</th>
+<th>Methode</th>
+</tr>
+</thead>
+<tbody id="transformConfigBody"></tbody>
+</table>
+</div>
+<div class="btn-row btn-right" style="margin-top:14px"><button class="btn-primary" id="applyTransformBtn">Umwandlung anwenden</button><button class="btn-primary btn-disabled" disabled="" id="next2_2">Weiter</button></div>
+<div class="preview" id="panel_2_2" style="margin-top:14px">
+<div class="label-row panel-header" style="justify-content:space-between;margin-bottom:10px">
+<label>Datenansicht (nach Umwandlung)</label><button class="btn-secondary panel-toggle" id="toggle_2_2" style="padding:6px 10px;min-width:42px" type="button">v</button></div>
+<div class="panel-body hidden" id="preview2bBody">
+<div class="table-wrap">
+<div class="table-wrap" id="preview2bTable"></div>
+</div>
+</div>
+</div>
+</section>
+<section class="subcard" id="step2_3">
+<h3>2.3 Anreicherung</h3>
+<p class="subtitle">(Augmenting data)</p>
+<p class="sub">Erweitere den Datensatz bei Bedarf um zusätzliche Beispiele.</p>
+<div class="grid2">
+<div><label for="augmentationStrategy">Anreicherungsstrategie</label><select id="augmentationStrategy">
+<option value="none">Keine</option>
+<option value="synthetic">Synthetische Beispiele</option>
+<option value="adversarial">Adversarial-nahe Beispiele</option>
+</select></div>
+<div><label for="augmentationCount">Anzahl zusätzlicher Datensätze</label><div class="inline-range"><input id="augmentationCount" max="100" min="0" step="1" type="range" value="0"/><input id="augmentationCountValue" max="100" min="0" step="1" type="number" value="0"/></div></div>
+</div>
+<div class="btn-row btn-right" style="margin-top:14px"><button class="btn-primary" id="applyAugmentBtn">Anreicherung anwenden</button><button class="btn-primary btn-disabled" disabled="" id="next2_3">Weiter</button></div>
+<div class="preview" id="panel_2_3" style="margin-top:14px">
+<div class="label-row panel-header" style="justify-content:space-between;margin-bottom:10px">
+<label>Datenansicht (angereicherte Daten)</label><button class="btn-secondary panel-toggle" id="toggle_2_3" style="padding:6px 10px;min-width:42px" type="button">v</button></div>
+<div class="panel-body hidden" id="preview2cBody">
+<div class="table-wrap">
+<div class="table-wrap" id="preview2cTable"></div>
+</div>
+</div>
+</div>
+</section>
+<section class="subcard" id="step2_4">
+<h3>2.4 Stichprobenerhebung</h3>
+<p class="subtitle">(Sampling subsets)</p>
+<p class="sub">Reduziere den Datenumfang für geringere Trainingszeiten und Kosten und konfiguriere die
+            Entnahmemethode.</p>
+<div class="grid3">
+<div><label for="sampleMethod">Methode</label><select id="sampleMethod">
+<option value="first">Erste x Datensätze</option>
+<option value="random">Zufällig auswählen</option>
+<option value="everyNth">Jeden n-ten Datensatz</option>
+<option value="stratified">Stratifiziert nach Label</option>
+<option value="last">Letzte x Datensätze</option>
+</select></div>
+<div class="inline-range"><label for="sampleSlider">Anzahl der Datensätze</label><input id="sampleSlider" max="100" min="0" step="1" type="range" value="9"/><input id="samplePercent" max="100" min="0" step="1" type="number" value="9"/></div>
+<div class="statusbox" id="sampleBox">Noch nicht angewendet.</div>
+</div>
+<div class="btn-row btn-right" style="margin-top:14px"><button class="btn-primary" id="applySamplingBtn">Stichprobenerhebung anwenden</button><button class="btn-primary btn-disabled" disabled="" id="next2_4">Weiter</button></div>
+<div class="preview" id="panel_2_4" style="margin-top:14px">
+<div class="label-row panel-header" style="justify-content:space-between;margin-bottom:10px">
+<label>Datenansicht (Stichprobe)</label><button class="btn-secondary panel-toggle" id="toggle_2_4" style="padding:6px 10px;min-width:42px" type="button">v</button></div>
+<div class="panel-body hidden" id="preview2dBody">
+<div class="table-wrap">
+<div class="table-wrap" id="preview2dTable"></div>
+</div>
+</div>
+</div>
+</section>
+</div>
+</section>
+<section class="section card s3">
+<h2>Merkmalsermittlung</h2>
+<p class="caption">Feature engineering</p>
+<div class="subcards">
+<section class="subcard" id="step3_1">
+<h3>3.1 Auswahl und Extraktion von Merkmalen</h3>
+<p class="subtitle">(Feature selection and extraction)</p>
+<p class="sub">Wähle geeignete Merkmale für das spätere Modell aus. Anschließend kannst du die finale Auswahl als CSV herunterladen.</p>
+<div class="label-row"><label>Feature-Auswahl</label></div>
+<div class="check-list" id="featureList"></div>
+<div class="hint-text" id="featureInfo"></div>
+<div class="preview" id="panel_3_1" style="margin-top:14px;display:none"><div class="label-row panel-header" style="justify-content:space-between;margin-bottom:10px"><label>Datenansicht</label><button class="btn-secondary panel-toggle btn-disabled" disabled="" id="toggle_3_1" style="padding:6px 10px;min-width:42px" type="button">v</button></div><div class="panel-body hidden" id="preview3aBody"><div class="table-wrap"><div class="table-wrap" id="preview3aTable"></div></div></div></div><div class="btn-row btn-right" style="margin-top:14px"><button class="btn-secondary" id="downloadCsvBtn" type="button">CSV herunterladen</button></div>
+</section>
+<section class="subcard" id="step3_2" style="display:none">
+<h3>3.2 Extraktion von Merkmalen</h3>
+<p class="subtitle">(Feature extraction)</p>
+<p class="sub">Füge abgeleitete Merkmale hinzu und betrachte die finale Vorschau.</p>
+<div class="check-list"><label class="check-item"><input checked="" disabled="" id="featNetValue" type="checkbox"/><span><strong>Nettowert</strong></span></label><label class="check-item"><input checked="" disabled="" id="featSupportFlag" type="checkbox"/><span><strong>Support-intensiv</strong></span></label><label class="check-item"><input checked="" disabled="" id="featDelayFlag" type="checkbox"/><span><strong>Lieferverzug</strong></span></label></div>
+<div class="btn-row btn-right" style="margin-top:14px"><button class="btn-primary btn-disabled" disabled="" id="applyFeatureBtn">Merkmalsermittlung anwenden</button><button class="btn-primary" id="next3_2">Weiter</button></div>
+<div class="preview" id="panel_3_2" style="margin-top:14px"><div class="label-row panel-header" style="justify-content:space-between;margin-bottom:10px"><label>Datenansicht (final aufbereitete Daten)</label><button class="btn-secondary panel-toggle btn-disabled" disabled="" id="toggle_3_2" style="padding:6px 10px;min-width:42px" type="button">v</button></div><div class="panel-body hidden" id="preview3bBody"><div class="table-wrap"><div class="table-wrap" id="preview3bTable"></div></div></div></div><div class="grid2" style="margin-top:14px">
+<div class="statusbox" id="featureBox">Noch nicht angewendet.</div>
+<div class="table-wrap" id="finalPreview"></div>
+</div>
+<div class="grid3" style="margin-top:14px">
+<div class="mini-card">
+<h4>Fixes Dataset</h4>
+<p id="sumRows">–</p>
+</div>
+<div class="mini-card">
+<h4>Ausgewählte Features</h4>
+<p id="sumFeatures">–</p>
+</div>
+<div class="mini-card">
+<h4>Aktueller Zustand</h4>
+<p id="sumState">–</p>
+</div>
+</div>
+</section>
+</div>
+</section>
+<section class="progress-shell">
+<div class="progress-head">
+<div class="progress-title">Fortschritt durch die Übung</div>
+<div class="progress-text" id="pageProgressText">0 / 8 Teilschritte durchgeführt</div>
+</div>
+<div class="progress-track">
+<div class="progress-fill" id="pageProgressFill"></div>
+</div>
+</section>
+</main>
+</div>
+<script>
+const RAW_ROWS = [{"_uid": "R001", "order_id": "A-1001", "country": "BE", "device_type": "Mobile", "order_value": 32.4, "discount_pct": 10, "delivery_days": 4, "support_tickets": 1, "customer_name": "David Koch", "email": "david.koch1@example.com", "returned": "Ja"}, {"_uid": "R002", "order_id": "A-1002", "country": "DE", "device_type": "Tablet", "order_value": 149.5, "discount_pct": null, "delivery_days": 2, "support_tickets": 1, "customer_name": "Rosa Bauer", "email": "rosa.bauer2@example.com", "returned": "Ja"}, {"_uid": "R003", "order_id": "A-1003", "country": "DE", "device_type": "Tablet", "order_value": 83.7, "discount_pct": 25, "delivery_days": 9, "support_tickets": 3, "customer_name": "Olivia Bauer", "email": "olivia.bauer3@example.com", "returned": "Ja"}, {"_uid": "R004", "order_id": "A-1004", "country": "CH", "device_type": "Mobile", "order_value": null, "discount_pct": 5, "delivery_days": 7, "support_tickets": 2, "customer_name": "Emilia Weber", "email": "emilia.weber4@example.com", "returned": "Nein"}, {"_uid": "R005", "order_id": "A-1005", "country": "CH", "device_type": "Mobile", "order_value": 52.4, "discount_pct": 0, "delivery_days": null, "support_tickets": 2, "customer_name": "Ben Schäfer", "email": "ben.schäfer5@example.com", "returned": "Nein"}, {"_uid": "R006", "order_id": "A-1006", "country": "NL", "device_type": "Mobile", "order_value": 312.1, "discount_pct": 15, "delivery_days": 2, "support_tickets": 4, "customer_name": "Viktor Becker", "email": "viktor.becker6@example.com", "returned": "Nein"}, {"_uid": "R007", "order_id": "A-1007", "country": "NL", "device_type": "Mobile", "order_value": 232.8, "discount_pct": 0, "delivery_days": 4, "support_tickets": 2, "customer_name": "Max Mustermann", "email": "max.mustermann@example.com", "returned": "Ja"}, {"_uid": "R008", "order_id": "A-1008", "country": "IT", "device_type": "mobile", "order_value": 158.8, "discount_pct": 10, "delivery_days": 3, "support_tickets": 2, "customer_name": "Greta Wagner", "email": "greta.wagner8@example.com", "returned": "yes"}, {"_uid": "R009", "order_id": "A-1009", "country": "BE", "device_type": "MOB", "order_value": 216.2, "discount_pct": 20, "delivery_days": 3, "support_tickets": 4, "customer_name": "Felix Schäfer", "email": "felix.schäfer9@example.com", "returned": "ja"}, {"_uid": "R010", "order_id": "A-1010", "country": "IT", "device_type": "Desktop", "order_value": 316.9, "discount_pct": 25, "delivery_days": 9, "support_tickets": 1, "customer_name": "Ben Weber", "email": "ben.weber10@example.com", "returned": "Nein"}, {"_uid": "R011", "order_id": "A-1011", "country": "DE", "device_type": "Desktop", "order_value": 4200.0, "discount_pct": 0, "delivery_days": 4, "support_tickets": 4, "customer_name": "Greta Schäfer", "email": "greta.schäfer11@example.com", "returned": "Nein"}, {"_uid": "R012", "order_id": "A-1012", "country": "IT", "device_type": "Tablet", "order_value": 7800.0, "discount_pct": 10, "delivery_days": 3, "support_tickets": 1, "customer_name": "Tina Hoffmann", "email": "tina.hoffmann12@example.com", "returned": "Nein"}, {"_uid": "R013", "order_id": "A-1013", "country": "NL", "device_type": "Desktop", "order_value": 131.8, "discount_pct": 5, "delivery_days": 9, "support_tickets": 12, "customer_name": "Ben Schmidt", "email": "ben.schmidt13@example.com", "returned": "Ja"}, {"_uid": "R014", "order_id": "A-1014", "country": "AT", "device_type": "Tablet", "order_value": 72.2, "discount_pct": 70, "delivery_days": 7, "support_tickets": 4, "customer_name": "Mila Hoffmann", "email": "mila.hoffmann14@example.com", "returned": "Ja"}, {"_uid": "R015", "order_id": "A-1015", "country": "NL", "device_type": "Desktop", "order_value": -49.9, "discount_pct": 20, "delivery_days": 1, "support_tickets": 0, "customer_name": "Klara Schmidt", "email": "klara.schmidt15@example.com", "returned": "Nein"}, {"_uid": "R016", "order_id": "A-1016", "country": "DE", "device_type": "Desktop", "order_value": 71.7, "discount_pct": 0, "delivery_days": 5, "support_tickets": 4, "customer_name": "Erika Mustermann", "email": "erika.mustermann@example.com", "returned": "Ja"}, {"_uid": "R017", "order_id": "A-1017", "country": "BE", "device_type": "Desktop", "order_value": 273.3, "discount_pct": 20, "delivery_days": 4, "support_tickets": 1, "customer_name": "Felix Koch", "email": "felix.koch17@example.com", "returned": "Nein"}, {"_uid": "R018", "order_id": "A-1018", "country": "NL", "device_type": "Mobile", "order_value": 201.7, "discount_pct": 15, "delivery_days": 1, "support_tickets": 0, "customer_name": "Jonas Weber", "email": "jonas.weber18@example.com", "returned": "Nein"}, {"_uid": "R019", "order_id": "A-1019", "country": "DE", "device_type": "Mobile", "order_value": 284.0, "discount_pct": 0, "delivery_days": 2, "support_tickets": 3, "customer_name": "Simon Fischer", "email": "simon.fischer19@example.com", "returned": "Ja"}, {"_uid": "R020", "order_id": "A-1020", "country": "AT", "device_type": "Tablet", "order_value": 165.2, "discount_pct": 20, "delivery_days": 3, "support_tickets": 2, "customer_name": "Greta Koch", "email": "greta.koch20@example.com", "returned": "Nein"}, {"_uid": "R021", "order_id": "A-2007", "country": "BE", "device_type": "Tablet", "order_value": 84.3, "discount_pct": 10, "delivery_days": 7, "support_tickets": 2, "customer_name": "Rosa Schäfer", "email": "rosa.schäfer21@example.com", "returned": "Nein"}, {"_uid": "R022", "order_id": "A-2007", "country": "BE", "device_type": "Tablet", "order_value": 84.3, "discount_pct": 10, "delivery_days": 7, "support_tickets": 2, "customer_name": "Rosa Schäfer", "email": "rosa.schäfer21@example.com", "returned": "Nein"}, {"_uid": "R023", "order_id": "A-2007", "country": "DE", "device_type": "Mobile", "order_value": 233.8, "discount_pct": 0, "delivery_days": 4, "support_tickets": 0, "customer_name": "Klara Schmidt", "email": "klara.schmidt23@example.com", "returned": "Ja"}, {"_uid": "R024", "order_id": "A-1024", "country": "NL", "device_type": "Mobile", "order_value": 107.2, "discount_pct": 15, "delivery_days": 4, "support_tickets": 4, "customer_name": "Tina Bauer", "email": "tina.bauer24@example.com", "returned": "Ja"}, {"_uid": "R025", "order_id": "A-1025", "country": "IT", "device_type": "Mobile", "order_value": 256.5, "discount_pct": 15, "delivery_days": 4, "support_tickets": 0, "customer_name": "Noah Becker", "email": "noah.becker25@example.com", "returned": "Ja"}, {"_uid": "R026", "order_id": "A-1026", "country": "IT", "device_type": "Desktop", "order_value": 162.8, "discount_pct": 25, "delivery_days": 1, "support_tickets": 0, "customer_name": "Mila Becker", "email": "mila.becker26@example.com", "returned": "Ja"}, {"_uid": "R027", "order_id": "A-1027", "country": "DE", "device_type": "Mobile", "order_value": 81.5, "discount_pct": 20, "delivery_days": 8, "support_tickets": 1, "customer_name": "Felix Wagner", "email": "felix.wagner27@example.com", "returned": "Nein"}, {"_uid": "R028", "order_id": "A-1028", "country": "IT", "device_type": "Mobile", "order_value": 283.0, "discount_pct": 0, "delivery_days": 8, "support_tickets": 4, "customer_name": "Ben Koch", "email": "ben.koch28@example.com", "returned": "Ja"}, {"_uid": "R029", "order_id": "A-1029", "country": "DE", "device_type": "Mobile", "order_value": 298.3, "discount_pct": 5, "delivery_days": 3, "support_tickets": 3, "customer_name": "Paul Weber", "email": "paul.weber29@example.com", "returned": "Nein"}, {"_uid": "R030", "order_id": "A-1030", "country": "IT", "device_type": "Mobile", "order_value": 73.6, "discount_pct": 0, "delivery_days": 7, "support_tickets": 2, "customer_name": "Jonas Hoffmann", "email": "jonas.hoffmann30@example.com", "returned": "Nein"}, {"_uid": "R031", "order_id": "A-1031", "country": "BE", "device_type": "Tablet", "order_value": 318.6, "discount_pct": 20, "delivery_days": 8, "support_tickets": 1, "customer_name": "Jonas Weber", "email": "jonas.weber31@example.com", "returned": "Ja"}, {"_uid": "R032", "order_id": "A-1032", "country": "DE", "device_type": "Tablet", "order_value": 242.0, "discount_pct": 0, "delivery_days": 6, "support_tickets": 0, "customer_name": "Tina Schäfer", "email": "tina.schäfer32@example.com", "returned": "Ja"}, {"_uid": "R033", "order_id": "A-1033", "country": "NL", "device_type": "Tablet", "order_value": 71.4, "discount_pct": 20, "delivery_days": 2, "support_tickets": 1, "customer_name": "Viktor Schmidt", "email": "viktor.schmidt33@example.com", "returned": "Ja"}, {"_uid": "R034", "order_id": "A-1034", "country": "BE", "device_type": "Mobile", "order_value": 144.1, "discount_pct": 20, "delivery_days": 4, "support_tickets": 4, "customer_name": "Viktor Schmidt", "email": "viktor.schmidt34@example.com", "returned": "Ja"}, {"_uid": "R035", "order_id": "A-1035", "country": "IT", "device_type": "Tablet", "order_value": 197.2, "discount_pct": 20, "delivery_days": 6, "support_tickets": 2, "customer_name": "Klara Weber", "email": "klara.weber35@example.com", "returned": "Ja"}, {"_uid": "R036", "order_id": "A-1036", "country": "CH", "device_type": "Desktop", "order_value": 63.6, "discount_pct": 25, "delivery_days": 5, "support_tickets": 3, "customer_name": "Clara Meyer", "email": "clara.meyer36@example.com", "returned": "Nein"}, {"_uid": "R037", "order_id": "A-1037", "country": "IT", "device_type": "Tablet", "order_value": 319.5, "discount_pct": 0, "delivery_days": 2, "support_tickets": 4, "customer_name": "Rosa Wagner", "email": "rosa.wagner37@example.com", "returned": "Ja"}, {"_uid": "R038", "order_id": "A-1038", "country": "AT", "device_type": "Desktop", "order_value": 284.9, "discount_pct": 5, "delivery_days": 6, "support_tickets": 2, "customer_name": "Olivia Koch", "email": "olivia.koch38@example.com", "returned": "Ja"}, {"_uid": "R039", "order_id": "A-1039", "country": "BE", "device_type": "Desktop", "order_value": 205.4, "discount_pct": 25, "delivery_days": 9, "support_tickets": 0, "customer_name": "David Fischer", "email": "david.fischer39@example.com", "returned": "Nein"}, {"_uid": "R040", "order_id": "A-1040", "country": "CH", "device_type": "Mobile", "order_value": 287.5, "discount_pct": 25, "delivery_days": 9, "support_tickets": 1, "customer_name": "Jonas Bauer", "email": "jonas.bauer40@example.com", "returned": "Nein"}, {"_uid": "R041", "order_id": "A-1041", "country": "AT", "device_type": "Tablet", "order_value": 126.1, "discount_pct": 25, "delivery_days": 5, "support_tickets": 4, "customer_name": "Ida Meyer", "email": "ida.meyer41@example.com", "returned": "Nein"}, {"_uid": "R042", "order_id": "A-1042", "country": "DE", "device_type": "Tablet", "order_value": 150.0, "discount_pct": 10, "delivery_days": 1, "support_tickets": 0, "customer_name": "Emilia Wagner", "email": "emilia.wagner42@example.com", "returned": "Nein"}, {"_uid": "R043", "order_id": "A-1043", "country": "AT", "device_type": "Tablet", "order_value": 155.3, "discount_pct": 25, "delivery_days": 7, "support_tickets": 4, "customer_name": "David Schmidt", "email": "david.schmidt43@example.com", "returned": "Ja"}, {"_uid": "R044", "order_id": "A-1044", "country": "BE", "device_type": "Mobile", "order_value": 185.9, "discount_pct": 10, "delivery_days": 9, "support_tickets": 1, "customer_name": "Emilia Meyer", "email": "emilia.meyer44@example.com", "returned": "Nein"}, {"_uid": "R045", "order_id": "A-1045", "country": "CH", "device_type": "Desktop", "order_value": 290.2, "discount_pct": 0, "delivery_days": 6, "support_tickets": 1, "customer_name": "David Becker", "email": "david.becker45@example.com", "returned": "Ja"}, {"_uid": "R046", "order_id": "A-1046", "country": "NL", "device_type": "Desktop", "order_value": 312.3, "discount_pct": 25, "delivery_days": 3, "support_tickets": 1, "customer_name": "Felix Hoffmann", "email": "felix.hoffmann46@example.com", "returned": "Ja"}, {"_uid": "R047", "order_id": "A-1047", "country": "DE", "device_type": "Mobile", "order_value": 242.3, "discount_pct": 10, "delivery_days": 7, "support_tickets": 1, "customer_name": "Felix Schmidt", "email": "felix.schmidt47@example.com", "returned": "Nein"}, {"_uid": "R048", "order_id": "A-1048", "country": "IT", "device_type": "Mobile", "order_value": 278.3, "discount_pct": 5, "delivery_days": 4, "support_tickets": 3, "customer_name": "Jonas Weber", "email": "jonas.weber48@example.com", "returned": "Nein"}, {"_uid": "R049", "order_id": "A-1049", "country": "AT", "device_type": "Mobile", "order_value": 219.7, "discount_pct": 15, "delivery_days": 6, "support_tickets": 2, "customer_name": "Ida Becker", "email": "ida.becker49@example.com", "returned": "Ja"}, {"_uid": "R050", "order_id": "A-1050", "country": "BE", "device_type": "Tablet", "order_value": 142.9, "discount_pct": 20, "delivery_days": 6, "support_tickets": 0, "customer_name": "Ida Fischer", "email": "ida.fischer50@example.com", "returned": "Ja"}, {"_uid": "R051", "order_id": "A-1051", "country": "NL", "device_type": "Desktop", "order_value": 36.3, "discount_pct": 20, "delivery_days": 7, "support_tickets": 2, "customer_name": "Noah Bauer", "email": "noah.bauer51@example.com", "returned": "Nein"}, {"_uid": "R052", "order_id": "A-1052", "country": "NL", "device_type": "Mobile", "order_value": 138.6, "discount_pct": 20, "delivery_days": 4, "support_tickets": 2, "customer_name": "Noah Meyer", "email": "noah.meyer52@example.com", "returned": "Ja"}, {"_uid": "R053", "order_id": "A-1053", "country": "NL", "device_type": "Tablet", "order_value": 227.6, "discount_pct": 25, "delivery_days": 4, "support_tickets": 2, "customer_name": "Clara Becker", "email": "clara.becker53@example.com", "returned": "Nein"}, {"_uid": "R054", "order_id": "A-1054", "country": "NL", "device_type": "Desktop", "order_value": 220.7, "discount_pct": 0, "delivery_days": 5, "support_tickets": 4, "customer_name": "Noah Becker", "email": "noah.becker54@example.com", "returned": "Nein"}, {"_uid": "R055", "order_id": "A-1055", "country": "IT", "device_type": "Tablet", "order_value": 112.2, "discount_pct": 5, "delivery_days": 4, "support_tickets": 3, "customer_name": "Felix Bauer", "email": "felix.bauer55@example.com", "returned": "Nein"}, {"_uid": "R056", "order_id": "A-1056", "country": "NL", "device_type": "Desktop", "order_value": 144.8, "discount_pct": 0, "delivery_days": 5, "support_tickets": 2, "customer_name": "Noah Bauer", "email": "noah.bauer56@example.com", "returned": "Ja"}, {"_uid": "R057", "order_id": "A-1057", "country": "NL", "device_type": "Tablet", "order_value": 120.1, "discount_pct": 15, "delivery_days": 8, "support_tickets": 1, "customer_name": "Felix Schmidt", "email": "felix.schmidt57@example.com", "returned": "Nein"}, {"_uid": "R058", "order_id": "A-1058", "country": "CH", "device_type": "Tablet", "order_value": 220.8, "discount_pct": 20, "delivery_days": 6, "support_tickets": 0, "customer_name": "Jonas Weber", "email": "jonas.weber58@example.com", "returned": "Ja"}, {"_uid": "R059", "order_id": "A-1059", "country": "AT", "device_type": "Mobile", "order_value": 32.2, "discount_pct": 5, "delivery_days": 8, "support_tickets": 4, "customer_name": "Olivia Hoffmann", "email": "olivia.hoffmann59@example.com", "returned": "Ja"}, {"_uid": "R060", "order_id": "A-1060", "country": "BE", "device_type": "Tablet", "order_value": 82.4, "discount_pct": 25, "delivery_days": 7, "support_tickets": 3, "customer_name": "Hugo Fischer", "email": "hugo.fischer60@example.com", "returned": "Nein"}, {"_uid": "R061", "order_id": "A-1061", "country": "BE", "device_type": "Tablet", "order_value": 26.6, "discount_pct": 0, "delivery_days": 7, "support_tickets": 1, "customer_name": "Rosa Schäfer", "email": "rosa.schäfer61@example.com", "returned": "Ja"}, {"_uid": "R062", "order_id": "A-1062", "country": "DE", "device_type": "Tablet", "order_value": 98.5, "discount_pct": 0, "delivery_days": 8, "support_tickets": 1, "customer_name": "Rosa Koch", "email": "rosa.koch62@example.com", "returned": "Nein"}, {"_uid": "R063", "order_id": "A-1063", "country": "NL", "device_type": "Desktop", "order_value": 305.3, "discount_pct": 15, "delivery_days": 9, "support_tickets": 3, "customer_name": "Felix Schäfer", "email": "felix.schäfer63@example.com", "returned": "Nein"}, {"_uid": "R064", "order_id": "A-1064", "country": "IT", "device_type": "Desktop", "order_value": 246.8, "discount_pct": 25, "delivery_days": 5, "support_tickets": 4, "customer_name": "Hugo Wagner", "email": "hugo.wagner64@example.com", "returned": "Nein"}, {"_uid": "R065", "order_id": "A-1065", "country": "IT", "device_type": "Mobile", "order_value": 235.5, "discount_pct": 5, "delivery_days": 5, "support_tickets": 2, "customer_name": "Simon Schmidt", "email": "simon.schmidt65@example.com", "returned": "Nein"}, {"_uid": "R066", "order_id": "A-1066", "country": "AT", "device_type": "Mobile", "order_value": 93.2, "discount_pct": 25, "delivery_days": 3, "support_tickets": 1, "customer_name": "Noah Hoffmann", "email": "noah.hoffmann66@example.com", "returned": "Ja"}, {"_uid": "R067", "order_id": "A-1067", "country": "CH", "device_type": "Tablet", "order_value": 162.4, "discount_pct": 0, "delivery_days": 4, "support_tickets": 3, "customer_name": "Tina Meyer", "email": "tina.meyer67@example.com", "returned": "Nein"}, {"_uid": "R068", "order_id": "A-1068", "country": "NL", "device_type": "Desktop", "order_value": 165.7, "discount_pct": 10, "delivery_days": 5, "support_tickets": 3, "customer_name": "Simon Koch", "email": "simon.koch68@example.com", "returned": "Nein"}, {"_uid": "R069", "order_id": "A-1069", "country": "NL", "device_type": "Mobile", "order_value": 169.0, "discount_pct": 10, "delivery_days": 7, "support_tickets": 3, "customer_name": "Mila Becker", "email": "mila.becker69@example.com", "returned": "Ja"}, {"_uid": "R070", "order_id": "A-1070", "country": "BE", "device_type": "Tablet", "order_value": 260.5, "discount_pct": 25, "delivery_days": 3, "support_tickets": 3, "customer_name": "Viktor Koch", "email": "viktor.koch70@example.com", "returned": "Ja"}, {"_uid": "R071", "order_id": "A-1071", "country": "DE", "device_type": "Desktop", "order_value": 199.6, "discount_pct": 25, "delivery_days": 1, "support_tickets": 0, "customer_name": "Emilia Schäfer", "email": "emilia.schäfer71@example.com", "returned": "Nein"}, {"_uid": "R072", "order_id": "A-1072", "country": "AT", "device_type": "Mobile", "order_value": 101.7, "discount_pct": 10, "delivery_days": 4, "support_tickets": 3, "customer_name": "Klara Hoffmann", "email": "klara.hoffmann72@example.com", "returned": "Nein"}, {"_uid": "R073", "order_id": "A-1073", "country": "CH", "device_type": "Desktop", "order_value": 99.4, "discount_pct": 0, "delivery_days": 8, "support_tickets": 0, "customer_name": "Lukas Weber", "email": "lukas.weber73@example.com", "returned": "Ja"}, {"_uid": "R074", "order_id": "A-1074", "country": "BE", "device_type": "Mobile", "order_value": 255.5, "discount_pct": 25, "delivery_days": 1, "support_tickets": 0, "customer_name": "Greta Meyer", "email": "greta.meyer74@example.com", "returned": "Ja"}, {"_uid": "R075", "order_id": "A-1075", "country": "NL", "device_type": "Mobile", "order_value": 95.4, "discount_pct": 15, "delivery_days": 2, "support_tickets": 4, "customer_name": "Olivia Wagner", "email": "olivia.wagner75@example.com", "returned": "Ja"}, {"_uid": "R076", "order_id": "A-1076", "country": "CH", "device_type": "Mobile", "order_value": 203.7, "discount_pct": 25, "delivery_days": 2, "support_tickets": 1, "customer_name": "David Bauer", "email": "david.bauer76@example.com", "returned": "Nein"}, {"_uid": "R077", "order_id": "A-1077", "country": "DE", "device_type": "Desktop", "order_value": 194.9, "discount_pct": 15, "delivery_days": 7, "support_tickets": 1, "customer_name": "Tina Weber", "email": "tina.weber77@example.com", "returned": "Ja"}, {"_uid": "R078", "order_id": "A-1078", "country": "DE", "device_type": "Tablet", "order_value": 252.9, "discount_pct": 25, "delivery_days": 2, "support_tickets": 4, "customer_name": "Lukas Koch", "email": "lukas.koch78@example.com", "returned": "Ja"}, {"_uid": "R079", "order_id": "A-1079", "country": "IT", "device_type": "Tablet", "order_value": 134.3, "discount_pct": 20, "delivery_days": 6, "support_tickets": 0, "customer_name": "Paul Schmidt", "email": "paul.schmidt79@example.com", "returned": "Nein"}, {"_uid": "R080", "order_id": "A-1080", "country": "IT", "device_type": "Desktop", "order_value": 212.5, "discount_pct": 15, "delivery_days": 3, "support_tickets": 3, "customer_name": "Rosa Wagner", "email": "rosa.wagner80@example.com", "returned": "Ja"}, {"_uid": "R081", "order_id": "A-1081", "country": "NL", "device_type": "Tablet", "order_value": 253.5, "discount_pct": 15, "delivery_days": 7, "support_tickets": 4, "customer_name": "Klara Weber", "email": "klara.weber81@example.com", "returned": "Nein"}, {"_uid": "R082", "order_id": "A-1082", "country": "DE", "device_type": "Desktop", "order_value": 285.1, "discount_pct": 5, "delivery_days": 8, "support_tickets": 4, "customer_name": "Klara Meyer", "email": "klara.meyer82@example.com", "returned": "Nein"}, {"_uid": "R083", "order_id": "A-1083", "country": "IT", "device_type": "Desktop", "order_value": 78.6, "discount_pct": 5, "delivery_days": 6, "support_tickets": 2, "customer_name": "Ida Bauer", "email": "ida.bauer83@example.com", "returned": "Nein"}, {"_uid": "R084", "order_id": "A-1084", "country": "BE", "device_type": "Desktop", "order_value": 189.0, "discount_pct": 20, "delivery_days": 4, "support_tickets": 0, "customer_name": "Noah Schäfer", "email": "noah.schäfer84@example.com", "returned": "Ja"}, {"_uid": "R085", "order_id": "A-1085", "country": "NL", "device_type": "Mobile", "order_value": 228.7, "discount_pct": 25, "delivery_days": 8, "support_tickets": 3, "customer_name": "Clara Wagner", "email": "clara.wagner85@example.com", "returned": "Ja"}, {"_uid": "R086", "order_id": "A-1086", "country": "AT", "device_type": "Desktop", "order_value": 229.1, "discount_pct": 10, "delivery_days": 6, "support_tickets": 3, "customer_name": "Noah Koch", "email": "noah.koch86@example.com", "returned": "Nein"}, {"_uid": "R087", "order_id": "A-1087", "country": "CH", "device_type": "Desktop", "order_value": 232.3, "discount_pct": 10, "delivery_days": 5, "support_tickets": 2, "customer_name": "David Weber", "email": "david.weber87@example.com", "returned": "Ja"}, {"_uid": "R088", "order_id": "A-1088", "country": "CH", "device_type": "Mobile", "order_value": 244.1, "discount_pct": 25, "delivery_days": 3, "support_tickets": 1, "customer_name": "Paul Wagner", "email": "paul.wagner88@example.com", "returned": "Ja"}, {"_uid": "R089", "order_id": "A-1089", "country": "BE", "device_type": "Tablet", "order_value": 313.1, "discount_pct": 20, "delivery_days": 5, "support_tickets": 0, "customer_name": "Jonas Weber", "email": "jonas.weber89@example.com", "returned": "Ja"}, {"_uid": "R090", "order_id": "A-1090", "country": "CH", "device_type": "Mobile", "order_value": 114.2, "discount_pct": 25, "delivery_days": 9, "support_tickets": 1, "customer_name": "Ben Meyer", "email": "ben.meyer90@example.com", "returned": "Nein"}, {"_uid": "R091", "order_id": "A-1091", "country": "NL", "device_type": "Desktop", "order_value": 230.7, "discount_pct": 5, "delivery_days": 8, "support_tickets": 0, "customer_name": "Tina Wagner", "email": "tina.wagner91@example.com", "returned": "Ja"}, {"_uid": "R092", "order_id": "A-1092", "country": "IT", "device_type": "Desktop", "order_value": 154.9, "discount_pct": 5, "delivery_days": 1, "support_tickets": 2, "customer_name": "David Schmidt", "email": "david.schmidt92@example.com", "returned": "Nein"}, {"_uid": "R093", "order_id": "A-1093", "country": "IT", "device_type": "Desktop", "order_value": 46.9, "discount_pct": 25, "delivery_days": 1, "support_tickets": 1, "customer_name": "Tina Wagner", "email": "tina.wagner93@example.com", "returned": "Ja"}, {"_uid": "R094", "order_id": "A-1094", "country": "DE", "device_type": "Mobile", "order_value": 59.9, "discount_pct": 15, "delivery_days": 4, "support_tickets": 4, "customer_name": "Olivia Schäfer", "email": "olivia.schäfer94@example.com", "returned": "Nein"}, {"_uid": "R095", "order_id": "A-1095", "country": "CH", "device_type": "Tablet", "order_value": 317.1, "discount_pct": 10, "delivery_days": 1, "support_tickets": 4, "customer_name": "Greta Weber", "email": "greta.weber95@example.com", "returned": "Ja"}, {"_uid": "R096", "order_id": "A-1096", "country": "CH", "device_type": "Tablet", "order_value": 49.0, "discount_pct": 5, "delivery_days": 3, "support_tickets": 4, "customer_name": "Felix Meyer", "email": "felix.meyer96@example.com", "returned": "Ja"}, {"_uid": "R097", "order_id": "A-3001", "country": "DE", "device_type": "Desktop", "order_value": null, "discount_pct": 10, "delivery_days": 3, "support_tickets": 1, "customer_name": "Test Nutzer", "email": "test.nutzer@example.com", "returned": "Nein"}, {"_uid": "R098", "order_id": "A-3002", "country": "AT", "device_type": "Tablet", "order_value": 9999.0, "discount_pct": 0, "delivery_days": 2, "support_tickets": 0, "customer_name": "Out Lier", "email": "out.lier@example.com", "returned": "Ja"}, {"_uid": "R099", "order_id": "A-3003", "country": "CH", "device_type": "mobile", "order_value": 85.4, "discount_pct": null, "delivery_days": null, "support_tickets": 2, "customer_name": "Pia Data", "email": "pia.data@example.com", "returned": "yes"}, {"_uid": "R100", "order_id": "A-3003", "country": "CH", "device_type": "mobile", "order_value": 85.4, "discount_pct": null, "delivery_days": null, "support_tickets": 2, "customer_name": "Pia Data", "email": "pia.data@example.com", "returned": "yes"}];
+const DATATYPES=[['numerisch','Nummerische Daten',false],['text','Texte',false],['pii','Personenbezogene Informationen',false],['imagevideo','Bilder oder Videos',false],['categorical','Kategorisierende Daten',false],['timeseries','Zeitreihen',false],['sensor','Sensordaten',false],['audio','Akustische Daten (Tonaufzeichnungen)',false],['geo','Geodaten',false],['graph','Netzwerk- / Graphdaten',false],['log','Ereignis- / Logdaten',false],['docs','Dokumente / PDFs',false]];
+const PREVIEW_KEYS=['order_id','country','device_type','order_value','discount_pct','delivery_days','support_tickets','customer_name','email','returned'];
+const FEATURES=['order_id','country','device_type','order_value','discount_pct','delivery_days','support_tickets','customer_name','email'];
+const COLUMN_LABELS={order_id:'Bestellnr.',country:'Land',device_type:'Gerät',order_value:'Bestellwert',discount_pct:'Rabatt',delivery_days:'Liefertage',support_tickets:'Tickets',customer_name:'Name',email:'E-Mail',returned:'Retoure'};
+const LABEL_OPTIONS=['order_id','customer_name','email','country','device_type','order_value','discount_pct','delivery_days','support_tickets','returned'];
+function $(id){ return document.getElementById(id); }
+function duplicateOrderIds(rows){ const counts={}; rows.forEach(r => counts[r.order_id]=(counts[r.order_id]||0)+1); return new Set(Object.entries(counts).filter(([_,c]) => c>1).map(([k]) => k)); }
+const PREVIEW_SELECTION_UIDS = (function(){
+  const rows = [...RAW_ROWS];
+  const dupIds = duplicateOrderIds(rows);
+  const withMissing = rows.filter(r => [r.order_value,r.discount_pct,r.delivery_days].some(v => v===null || typeof v==='undefined'));
+  const withDuplicates = rows.filter(r => dupIds.has(r.order_id));
+  const withOutliers = rows.filter(r => typeof r.order_value==='number' && (r.order_value > 2500 || r.order_value < 0));
+  const withPII = rows.filter(r => !!r.customer_name || !!r.email);
+  const selected = [];
+  function addRandom(arr){ const rest = arr.filter(r => !selected.some(s => s._uid === r._uid)); if(rest.length) selected.push(rest[Math.floor(Math.random()*rest.length)]); }
+  addRandom(withMissing); addRandom(withDuplicates); addRandom(withOutliers); addRandom(withPII);
+  const weighted = rows.filter(r => [withMissing,withDuplicates,withOutliers].some(g => g.some(x => x._uid===r._uid)));
+  while(selected.length < 10 && weighted.some(r => !selected.some(s => s._uid===r._uid))) addRandom(weighted);
+  while(selected.length < 10) addRandom(rows);
+  return selected.map(r => r._uid);
+})();
+function previewSubset(rows){
+  const map = new Map(rows.map(r => [String(r._uid || r.order_id), r]));
+  const selected = PREVIEW_SELECTION_UIDS.map(uid => map.get(String(uid))).filter(Boolean);
+  const selectedSet = new Set(selected.map(r => String(r._uid || r.order_id)));
+  const filler = rows.filter(r => !selectedSet.has(String(r._uid || r.order_id))).slice(0, Math.max(0, 10-selected.length));
+  return selected.concat(filler).slice(0,10);
+}
+function previewRows(rows, keys){ const view = rows.length > 10 ? previewSubset(rows) : rows; let html='<table><thead><tr>'+keys.map(k => '<th>'+(COLUMN_LABELS[k]||k)+'</th>').join('')+'</tr></thead><tbody>'; view.forEach(r => { html += '<tr>'+keys.map(k => '<td>'+(r[k]===null||typeof r[k]==='undefined'?'—':r[k])+'</td>').join('')+'</tr>'; }); html += '</tbody></table>'; return html; }
+function renderRaw(){ $('rawPreview').innerHTML = previewRows(RAW_ROWS, PREVIEW_KEYS); ['preview2aTable','preview2bTable','preview2cTable','preview2dTable'].forEach(id => { if($(id)) $(id).innerHTML = previewRows(RAW_ROWS, PREVIEW_KEYS); }); if($('sumRows')) $('sumRows').textContent = RAW_ROWS.length + ' Zeilen'; }
+function renderDatatype(){ const wrap=$('datatypeList'); wrap.innerHTML=''; DATATYPES.forEach(d => { const el=document.createElement('label'); el.className='check-item'; el.innerHTML='<input type="checkbox" data-key="'+d[0]+'" '+(d[2]?'checked':'')+'><span><strong>'+d[1]+'</strong></span>'; wrap.appendChild(el); }); if($('datatypeInfo')) $('datatypeInfo').textContent='Noch keine Datentypen ausgewählt.'; }
+function renderLabelOptions(){ $('labelSelect').innerHTML = LABEL_OPTIONS.map(o => '<option value="'+o+'">'+(COLUMN_LABELS[o]||o)+'</option>').join(''); }
+function renderTransformConfig(){ const rows=[['order_value','numerisch','numerisch-normalisiert','Normalisierung'],['discount_pct','numerisch','numerisch-normalisiert','Skalierung'],['delivery_days','numerisch','numerisch-normalisiert','Normalisierung'],['support_tickets','numerisch','numerisch-normalisiert','Skalierung'],['country','kategorisierend','binär kodiert','Formatumwandlung'],['device_type','kategorisierend','binär kodiert','Formatumwandlung'],['customer_name','personenbezogen','entfernt','Formatumwandlung'],['email','personenbezogen','anonymisiert','Formatumwandlung'],['returned','kategorisierend','Label','Formatumwandlung']]; const methodOptions=['Formatumwandlung','Skalierung','Normalisierung']; $('transformConfigBody').innerHTML = rows.map(r => '<tr><td>'+(COLUMN_LABELS[r[0]]||r[0])+'</td><td>'+r[1]+'</td><td><div class="text-like">'+r[2]+'</div></td><td><select>'+methodOptions.map(o => '<option '+(o===r[3]?'selected':'')+'>'+o+'</option>').join('')+'</select></td></tr>').join(''); }
+function renderFeatures(){ const wrap=$('featureList'); wrap.innerHTML=''; FEATURES.forEach(f => { const el=document.createElement('label'); el.className='check-item'; el.innerHTML='<input type="checkbox" data-feature="'+f+'" disabled><span><strong>'+(COLUMN_LABELS[f]||f)+'</strong></span>'; wrap.appendChild(el); }); if($('featureInfo')) $('featureInfo').textContent = 'Wähle Features für die Datenansicht aus.'; if($('sumFeatures')) $('sumFeatures').textContent = '0 ausgewählt'; if($('sumState')) $('sumState').textContent = 'Rohzustand'; }
+renderRaw(); renderDatatype(); renderLabelOptions(); renderTransformConfig(); renderFeatures();
+</script>
+<script>
+(function(){
+  function $(id){ return document.getElementById(id); }
+  function show(el){ if(el){ el.classList.remove('hidden'); } }
+  function toggle(el){ if(el){ el.classList.toggle('hidden'); } }
+  function enable(btn){ if(!btn) return; btn.disabled=false; btn.classList.remove('btn-disabled'); }
+  function disable(btn){ if(!btn) return; btn.disabled=true; if(!btn.classList.contains('btn-disabled')) btn.classList.add('btn-disabled'); }
+  function go(id){ const el=$(id); if(el) el.scrollIntoView({behavior:'smooth', block:'start'}); }
+  function setChevron(btn, body){ if(btn && body){ btn.textContent = body.classList.contains('hidden') ? 'v' : '^'; } }
+
+  // 1.1
+  const dtWrap = $('datatypeList');
+  const next11 = $('next1_1');
+  const datatypeStatus = $('datatypeInfo');
+  const relevantTypes = new Set(['numerisch','pii','categorical','log','text','geo']);
+  function refresh11(){
+    if(!dtWrap || !next11) return;
+    const checked = [...dtWrap.querySelectorAll('input[type="checkbox"]:checked')].map(cb => cb.dataset.key);
+    const relevantChecked = checked.filter(k => relevantTypes.has(k));
+    const irrelevantChecked = checked.filter(k => !relevantTypes.has(k));
+    if(checked.length === 0){
+      if(datatypeStatus) datatypeStatus.textContent = 'Noch keine Datentypen ausgewählt. Prüfe, welche Arten von Informationen für den Anwendungsfall inhaltlich hilfreich sein könnten.';
+      disable(next11);
+      return;
+    }
+    if(relevantChecked.length >= 3 && irrelevantChecked.length === 0){
+      if(datatypeStatus) datatypeStatus.textContent = 'Sinnvolle Auswahl. Die markierten Datentypen liefern zusammen eine gute fachliche Grundlage, um Muster zu Bestellungen, Kund:innen und möglichen Retouren zu erkennen.';
+      enable(next11);
+    } else if(relevantChecked.length >= 3 && irrelevantChecked.length > 0){
+      if(datatypeStatus) datatypeStatus.textContent = 'Teilweise sinnvoll. Die Auswahl enthält brauchbare Informationen, aber auch Datentypen, die für diesen Anwendungsfall weniger zielführend sind.';
+      disable(next11);
+    } else {
+      if(datatypeStatus) datatypeStatus.textContent = 'Noch nicht sinnvoll genug. Die bisherige Auswahl liefert noch nicht ausreichend hilfreiche Informationen für den Anwendungsfall.';
+      disable(next11);
+    }
+  }
+  if(dtWrap){
+    dtWrap.querySelectorAll('input[type="checkbox"]').forEach(cb => { cb.checked=false; });
+    dtWrap.addEventListener('change', refresh11);
+    refresh11();
+  }
+  if(next11) next11.onclick = () => go('step1_2');
+
+  // 1.2
+  const loadBtn = $('loadDatasetBtn'), next12 = $('next1_2'), rawBody = $('rawPreviewBody'), rawToggle = $('toggle_raw');
+  if(loadBtn) loadBtn.onclick = () => { show(rawBody); enable(next12); setChevron(rawToggle, rawBody); };
+  if(rawToggle){ rawToggle.onclick = () => { toggle(rawBody); setChevron(rawToggle, rawBody); }; setChevron(rawToggle, rawBody); }
+  if(next12) next12.onclick = () => go('step1_3');
+
+  // 1.3
+  const reasons = {
+    order_id:'Bestellnr. ist nur ein technischer Identifikator und kein fachliches Vorhersageziel.',
+    customer_name:'Name ist personenbezogen und kein sinnvolles Klassifikationslabel.',
+    email:'E-Mail ist personenbezogen und kein sinnvolles Klassifikationslabel.',
+    country:'Land ist eher ein Eingabemerkmal als das Ziel der Vorhersage.',
+    device_type:'Gerät ist ein Eingabemerkmal, nicht das Ziel.',
+    order_value:'Bestellwert ist ein numerisches Merkmal, aber kein Label.',
+    discount_pct:'Rabatt ist ein Einflussfaktor, aber nicht das Ziel.',
+    delivery_days:'Liefertage ist ein Merkmal, aber kein Label.',
+    support_tickets:'Tickets sind ein erklärendes Merkmal, aber nicht das Ziel.'
+  };
+  const checkBtn = $('checkLabelBtn'), labelSel = $('labelSelect'), next13 = $('next1_3'), labelStatus = $('labelStatus');
+  if(checkBtn) checkBtn.onclick = () => {
+    const selected = labelSel ? labelSel.value : '';
+    if(selected === 'returned'){
+      if(labelStatus) labelStatus.textContent = 'Prüfung erfolgreich. „Retoure“ eignet sich als Kennzeichen, weil genau vorhergesagt werden soll, ob ein Artikel retourniert wird oder nicht.';
+      enable(next13);
+    } else {
+      if(labelStatus) labelStatus.textContent = 'Prüfung nicht erfolgreich. ' + (reasons[selected] || 'Dieses Merkmal beschreibt nicht direkt das gewünschte Vorhersageziel.');
+      disable(next13);
+    }
+  };
+  if(next13) next13.onclick = () => go('step2_1');
+
+  // Preview toggles generic
+  [['toggle_2_1','preview2aBody'],['toggle_2_2','preview2bBody'],['toggle_2_3','preview2cBody'],['toggle_2_4','preview2dBody']].forEach(([bId, bodyId]) => {
+    const b=$(bId), body=$(bodyId);
+    if(b){ b.onclick = () => { toggle(body); setChevron(b, body); }; setChevron(b, body); }
+  });
+
+  // 2.1 analyze + apply
+  const analyzeBtn = $('analyzeQualityBtn'), applyClean = $('applyCleaningBtn'), next21 = $('next2_1'), cleaningBox = $('cleaningBox'), p21 = $('preview2aBody'), t21 = $('toggle_2_1');
+  if(analyzeBtn) analyzeBtn.onclick = () => {
+    if(cleaningBox){
+      cleaningBox.textContent = 'Gefundene Probleme:\n- Datensatz A-1002: Rabattwert fehlt.\n- Datensatz A-1004: Bestellwert fehlt.\n- Datensatz A-1005: Lieferdauer fehlt.\n- Datensatz A-1007 ist doppelt vorhanden.\n- Datensatz A-1003 und A-1008 verwenden uneinheitliche Label-Schreibweisen.';
+    }
+  };
+  if(applyClean) applyClean.onclick = () => {
+    show(p21); setChevron(t21,p21); enable(next21);
+    if(cleaningBox){
+      cleaningBox.textContent = 'Bereinigung angewendet.\n- Duplikate entfernt\n- fehlende Werte behandelt\n- Label normalisiert';
+    }
+  };
+  if(next21) next21.onclick = () => go('step2_2');
+
+  // keep existing next handlers for later steps
+  const next22=$('next2_2'), next23=$('next2_3'), next24=$('next2_4');
+  if($('applyTransformBtn')) $('applyTransformBtn').onclick = () => { show($('preview2bBody')); setChevron($('toggle_2_2'), $('preview2bBody')); enable(next22); };
+  if(next22) next22.onclick = () => go('step2_3');
+  if($('applyAugmentBtn')) $('applyAugmentBtn').onclick = () => { show($('preview2cBody')); setChevron($('toggle_2_3'), $('preview2cBody')); enable(next23); };
+  if(next23) next23.onclick = () => go('step2_4');
+  if($('applySamplingBtn')) $('applySamplingBtn').onclick = () => { show($('preview2dBody')); setChevron($('toggle_2_4'), $('preview2dBody')); enable(next24); };
+  if(next24) next24.onclick = () => go('step3_1');
+})();
+</script><script>
+(function(){
+  const STEP_ORDER = ['step1_1','step1_2','step1_3','step2_1','step2_2','step2_3','step2_4','step3_1'];
+  const completed = new Set();
+  const currentRowsState = { rows: (typeof RAW_ROWS !== 'undefined') ? JSON.parse(JSON.stringify(RAW_ROWS)) : [] };
+
+  function $(id){ return document.getElementById(id); }
+  function linkFor(stepId){ return document.querySelector('.step-link[data-step="'+stepId+'"]'); }
+  function setActive(stepId){ document.querySelectorAll('.step-link').forEach(l => l.classList.remove('active')); const l = linkFor(stepId); if(l) l.classList.add('active'); }
+  function unlock(stepId){ const l = linkFor(stepId); if(l) l.classList.remove('locked'); }
+  function markDone(stepId){
+    const l = linkFor(stepId);
+    if(l) l.classList.add('done');
+    completed.add(stepId);
+    updateProgress();
+    const idx = STEP_ORDER.indexOf(stepId);
+    if(idx >= 0 && idx < STEP_ORDER.length - 1) unlock(STEP_ORDER[idx+1]);
+  }
+  function updateProgress(){
+    const total = STEP_ORDER.length;
+    const done = completed.size;
+    const pct = (done / total) * 100;
+    const fill = $('pageProgressFill');
+    const text = $('pageProgressText');
+    if(fill) fill.style.width = pct + '%';
+    if(text) text.textContent = done + ' / ' + total + ' Teilschritte durchgeführt';
+  }
+  function canonicalLabel(v){
+    v = String(v == null ? '' : v).trim().toLowerCase();
+    if(['ja','yes'].includes(v)) return 'Ja';
+    if(['nein','no'].includes(v)) return 'Nein';
+    return String(v);
+  }
+  function avgNumeric(rows, key){
+    const vals = rows.map(r => r[key]).filter(v => typeof v === 'number');
+    return vals.reduce((a,b)=>a+b,0) / (vals.length || 1);
+  }
+  function cleanedRows(){
+    const rows = (typeof RAW_ROWS !== 'undefined') ? JSON.parse(JSON.stringify(RAW_ROWS)) : [];
+    const out = [];
+    const seen = new Set();
+    const avgOrder = avgNumeric(rows.filter(r => r.order_value !== null), 'order_value');
+    const avgDelivery = avgNumeric(rows.filter(r => r.delivery_days !== null), 'delivery_days');
+    rows.forEach(r => {
+      if(seen.has(r.order_id)) return;
+      seen.add(r.order_id);
+      const x = {...r};
+      x.returned = canonicalLabel(x.returned);
+      if(x.order_value === null) x.order_value = Number(avgOrder.toFixed(2));
+      if(x.delivery_days === null) x.delivery_days = Number(avgDelivery.toFixed(2));
+      if(String(x.device_type).toLowerCase() === 'mob' || String(x.device_type).toLowerCase() === 'mobile') x.device_type = 'Mobile';
+      out.push(x);
+    });
+    return out;
+  }
+  function updateCleaningPreview(){
+    const table = $('preview2aTable');
+    if(!table || typeof previewRows !== 'function') return;
+    currentRowsState.rows = cleanedRows();
+    const keys = ['order_id','country','device_type','order_value','delivery_days','returned'];
+    table.innerHTML = previewRows(currentRowsState.rows, keys);
+  }
+
+  // lock sidebar clicks until unlocked
+  document.querySelectorAll('.step-link').forEach(link => {
+    link.addEventListener('click', function(e){
+      const stepId = link.getAttribute('data-step');
+      if(link.classList.contains('locked')){
+        e.preventDefault();
+        e.stopPropagation();
+        return false;
+      }
+      setActive(stepId);
+    });
+  });
+  setActive('step1_1');
+  updateProgress();
+
+  // mark steps done when clicking Weiter buttons
+  const nextMap = {
+    next1_1:'step1_1', next1_2:'step1_2', next1_3:'step1_3',
+    next2_1:'step2_1', next2_2:'step2_2', next2_3:'step2_3', next2_4:'step2_4'
+  };
+  Object.entries(nextMap).forEach(([btnId, stepId]) => {
+    const btn = $(btnId);
+    if(btn){
+      btn.addEventListener('click', function(){ markDone(stepId); });
+    }
+  });
+
+  // on 2.1 apply cleaning: update the data view to show changed data
+  const applyCleaningBtn = $('applyCleaningBtn');
+  if(applyCleaningBtn){
+    applyCleaningBtn.addEventListener('click', function(){
+      updateCleaningPreview();
+    });
+  }
+})();
+</script><script>
+(function(){
+  const ORDER = ['step1_1','step1_2','step1_3','step2_1','step2_2','step2_3','step2_4','step3_1'];
+  const completed = new Set();
+  const resetRegistry = {};
+  const INFO_IDS = ['labelStatus','cleaningBox','sampleBox','featureBox','datatypeInfo','featureInfo','sumRows','sumFeatures','sumState'];
+
+  function $(id){ return document.getElementById(id); }
+  function byStep(id){ return document.getElementById(id); }
+  function linkFor(id){ return document.querySelector('.step-link[data-step="'+id+'"]'); }
+  function setActive(id){ document.querySelectorAll('.step-link').forEach(l=>l.classList.remove('active')); const l=linkFor(id); if(l) l.classList.add('active'); }
+  function enable(el){ if(!el) return; el.disabled=false; el.classList.remove('btn-disabled'); }
+  function disable(el){ if(!el) return; el.disabled=true; if(!el.classList.contains('btn-disabled')) el.classList.add('btn-disabled'); }
+  function setChevron(btn, body){ if(btn && body){ btn.textContent = body.classList.contains('hidden') ? 'v' : '^'; } }
+  function previewRows(rows, keys){ let html='<table><thead><tr>'+keys.map(k => '<th>'+(COLUMN_LABELS[k]||k)+'</th>').join('')+'</tr></thead><tbody>'; rows.forEach(r=>{ html += '<tr>'+keys.map(k => '<td>'+((r[k]===null||typeof r[k]==='undefined')?'—':r[k])+'</td>').join('')+'</tr>';}); html += '</tbody></table>'; return html; }
+  function canonicalLabel(v){ v = String(v==null?'':v).trim().toLowerCase(); if(['ja','yes'].includes(v)) return 'Ja'; if(['nein','no'].includes(v)) return 'Nein'; return String(v); }
+  const COLUMN_LABELS={order_id:'Bestellnr.',country:'Land',device_type:'Gerät',order_value:'Bestellwert',discount_pct:'Rabatt',delivery_days:'Liefertage',support_tickets:'Tickets',customer_name:'Name',email:'E-Mail',returned:'Retoure'};
+  function avgNumeric(rows, key){ const vals = rows.map(r=>r[key]).filter(v=>typeof v==='number'); return vals.reduce((a,b)=>a+b,0)/(vals.length||1); }
+  function cleanedRows(){
+    const rows = typeof RAW_ROWS !== 'undefined' ? JSON.parse(JSON.stringify(RAW_ROWS)) : [];
+    const out = []; const seen = new Set();
+    const avgOrder = avgNumeric(rows.filter(r=>r.order_value!==null),'order_value');
+    const avgDelivery = avgNumeric(rows.filter(r=>r.delivery_days!==null),'delivery_days');
+    rows.forEach(r=>{
+      if(seen.has(r.order_id)) return; seen.add(r.order_id);
+      const x={...r}; x.returned=canonicalLabel(x.returned);
+      if(x.order_value===null) x.order_value=Number(avgOrder.toFixed(2));
+      if(x.delivery_days===null) x.delivery_days=Number(avgDelivery.toFixed(2));
+      if(String(x.device_type).toLowerCase()==='mob' || String(x.device_type).toLowerCase()==='mobile') x.device_type='Mobile';
+      out.push(x);
+    });
+    return out;
+  }
+  function transformedRows(){
+    return cleanedRows().map(r => ({
+      order_id:r.order_id,
+      country:r.country,
+      device_type:String(r.device_type).trim().charAt(0).toUpperCase()+String(r.device_type).trim().slice(1).toLowerCase(),
+      order_value:Number(r.order_value).toFixed(2),
+      delivery_days:Number(r.delivery_days).toFixed(0),
+      returned:canonicalLabel(r.returned)
+    }));
+  }
+
+  // Capture base state after original scripts have already populated the DOM.
+  function captureStep(stepId){
+    const sec = byStep(stepId); if(!sec) return;
+    const snap = { controls: [], bodies: [], html: [] };
+    let idx = 0;
+    sec.querySelectorAll('input, select, button, textarea').forEach(el => {
+      const rid = stepId + '_ctrl_' + (++idx);
+      el.dataset.resetId = rid;
+      snap.controls.push({
+        rid,
+        tag: el.tagName,
+        type: el.type || '',
+        disabled: !!el.disabled,
+        value: 'value' in el ? el.value : '',
+        checked: !!el.checked,
+        selectedIndex: typeof el.selectedIndex === 'number' ? el.selectedIndex : null,
+        text: el.tagName === 'BUTTON' ? el.textContent : null
+      });
+    });
+    sec.querySelectorAll('.panel-body').forEach((el,bodyIdx) => {
+      const rid = stepId + '_body_' + bodyIdx;
+      el.dataset.resetId = rid;
+      snap.bodies.push({ rid, hidden: el.classList.contains('hidden'), html: el.innerHTML });
+    });
+    INFO_IDS.forEach(id => {
+      const el = $(id);
+      if(el && sec.contains(el)) snap.html.push({ id, html: el.innerHTML });
+    });
+    // special table holders inside step
+    sec.querySelectorAll('[id="rawPreview"],[id="preview2aTable"],[id="preview2bTable"],[id="preview2cTable"],[id="preview2dTable"],[id="finalPreview"],[id="transformConfigBody"]').forEach(el => {
+      if(!snap.html.find(x=>x.id===el.id)) snap.html.push({ id: el.id, html: el.innerHTML });
+    });
+    resetRegistry[stepId] = snap;
+  }
+  ORDER.forEach(captureStep);
+
+  // Remove returned row from 2.2 table once after renderTransformConfig has run.
+  (function removeReturnedRow(){
+    const body = $('transformConfigBody');
+    if(!body) return;
+    [...body.querySelectorAll('tr')].forEach(tr => {
+      const first = tr.querySelector('td');
+      if(first && first.textContent.trim() === 'returned') tr.remove();
+    });
+    if(resetRegistry['step2_2']){
+      const item = resetRegistry['step2_2'].html.find(x=>x.id==='transformConfigBody');
+      if(item) item.html = body.innerHTML;
+    }
+  })();
+
+  function restoreControl(el, s){
+    if(!el) return;
+    if(el.tagName === 'BUTTON'){
+      if(s.text !== null) el.textContent = s.text;
+      el.disabled = s.disabled;
+      if(el.disabled){ if(!el.classList.contains('btn-disabled')) el.classList.add('btn-disabled'); }
+      else el.classList.remove('btn-disabled');
+      return;
+    }
+    if(s.type === 'checkbox') el.checked = s.checked;
+    if(typeof s.selectedIndex === 'number' && el.tagName === 'SELECT') el.selectedIndex = s.selectedIndex;
+    if('value' in el) el.value = s.value;
+    el.disabled = s.disabled;
+  }
+  function resetStep(stepId){
+    const sec = byStep(stepId), snap = resetRegistry[stepId]; if(!sec || !snap) return;
+    snap.controls.forEach(s => restoreControl(sec.querySelector('[data-reset-id="'+s.rid+'"]'), s));
+    snap.bodies.forEach(s => {
+      const el = sec.querySelector('[data-reset-id="'+s.rid+'"]');
+      if(el){ el.innerHTML = s.html; el.classList.toggle('hidden', s.hidden); }
+    });
+    snap.html.forEach(s => {
+      const el = $(s.id);
+      if(el) el.innerHTML = s.html;
+    });
+    // reset chevrons within the step
+    sec.querySelectorAll('.panel-toggle').forEach(btn => {
+      const body = btn.closest('.preview,.preview-panel,.subcard')?.querySelector('.panel-body');
+      if(body) setChevron(btn, body);
+    });
+  }
+
+  function setStepLocked(stepId, locked){
+    const sec = byStep(stepId), link = linkFor(stepId); if(!sec) return;
+    sec.classList.toggle('step-locked', locked);
+    sec.querySelectorAll('input, select, button, textarea').forEach(el => {
+      if(locked) el.disabled = true;
+      else {
+        const snap = resetRegistry[stepId];
+        const state = snap ? snap.controls.find(s => s.rid === el.dataset.resetId) : null;
+        if(state) restoreControl(el, state);
+      }
+    });
+    if(link) link.classList.toggle('locked', locked);
+  }
+  function markDone(stepId, done){
+    const link = linkFor(stepId);
+    if(link) link.classList.toggle('done', !!done);
+    if(done) completed.add(stepId); else completed.delete(stepId);
+    updateProgress();
+  }
+  function updateProgress(){
+    const total = ORDER.length;
+    const done = completed.size;
+    const fill = $('pageProgressFill'), text = $('pageProgressText');
+    if(fill) fill.style.width = ((done/total)*100)+'%';
+    if(text) text.textContent = done + ' / ' + total + ' Teilschritte durchgeführt';
+  }
+  function invalidateAfter(stepId){
+    const pos = ORDER.indexOf(stepId);
+    for(let i=pos+1;i<ORDER.length;i++){
+      const sid = ORDER[i];
+      markDone(sid,false);
+      resetStep(sid);
+      setStepLocked(sid,true);
+    }
+    setActive(stepId);
+  }
+  function unlockNext(stepId){
+    const pos = ORDER.indexOf(stepId);
+    if(pos>=0 && pos<ORDER.length-1){ setStepLocked(ORDER[pos+1], false); }
+  }
+
+  // Initial locking: only first step active.
+  ORDER.forEach((sid, idx) => { if(idx===0) setStepLocked(sid, false); else { resetStep(sid); setStepLocked(sid, true); } });
+  setActive('step1_1');
+  updateProgress();
+
+  // Wire next buttons as the sole activation mechanism.
+  const nextMap = { next1_1:'step1_1', next1_2:'step1_2', next1_3:'step1_3', next2_1:'step2_1', next2_2:'step2_2', next2_3:'step2_3', next2_4:'step2_4' };
+  Object.entries(nextMap).forEach(([btnId, stepId]) => {
+    const btn = $(btnId);
+    if(btn){
+      btn.addEventListener('click', function(){
+        markDone(stepId,true);
+        unlockNext(stepId);
+      });
+    }
+  });
+
+  // Back navigation only to unlocked steps.
+  document.querySelectorAll('.step-link').forEach(link => {
+    link.addEventListener('click', function(e){
+      const sid = link.dataset.step;
+      if(link.classList.contains('locked')){ e.preventDefault(); e.stopPropagation(); return false; }
+      setActive(sid);
+    });
+  });
+
+  // Invalidation events on earlier-step changes.
+  byStep('step1_1')?.querySelectorAll('input[type="checkbox"]').forEach(el => el.addEventListener('change', ()=>invalidateAfter('step1_1')));
+  $('labelSelect')?.addEventListener('change', ()=>invalidateAfter('step1_3'));
+  ['cleanDuplicates','cleanLabels','removeMissingLabel','missingNumeric','missingCategorical'].forEach(id => { const el=$(id); if(el) el.addEventListener('change', ()=>invalidateAfter('step2_1')); });
+  byStep('step2_2')?.querySelectorAll('tbody#transformConfigBody select').forEach(el => el.addEventListener('change', ()=>invalidateAfter('step2_2')));
+  ['augmentationStrategy','augmentationCount'].forEach(id => { const el=$(id); if(el) el.addEventListener('change', ()=>invalidateAfter('step2_3')); });
+  ['sampleMethod','sampleSlider','samplePercent'].forEach(id => { const el=$(id); if(el) el.addEventListener('change', ()=>invalidateAfter('step2_4')); if(el) el.addEventListener('input', ()=>invalidateAfter('step2_4')); });
+
+  // 2.2 transformed preview patch based on raw cleaned data.
+  const applyTransformBtn = $('applyTransformBtn');
+  const preview2bTable = $('preview2bTable');
+  const preview2bBody = $('preview2bBody');
+  const toggle2b = $('toggle_2_2');
+  function renderTransformPreview(){
+    if(!preview2bTable) return;
+    const rows = transformedRows();
+    const keys = ['order_id','country','device_type','order_value','delivery_days','returned'];
+    preview2bTable.innerHTML = previewRows(rows, keys);
+    if(preview2bBody) preview2bBody.classList.remove('hidden');
+    setChevron(toggle2b, preview2bBody);
+  }
+  if(applyTransformBtn){ applyTransformBtn.addEventListener('click', renderTransformPreview); }
+})();
+</script><script>
+(function(){
+  function $(id){ return document.getElementById(id); }
+  function qa(root, sel){ return [...(root||document).querySelectorAll(sel)]; }
+  function setChevron(btn, body){ if(btn && body){ btn.textContent = body.classList.contains('hidden') ? 'v' : '^'; } }
+  function enable(el){ if(!el) return; el.disabled = false; el.classList.remove('btn-disabled'); }
+  function disable(el){ if(!el) return; el.disabled = true; if(el.tagName === 'BUTTON' && !el.classList.contains('btn-disabled')) el.classList.add('btn-disabled'); }
+  function canonicalLabel(v){ v = String(v==null?'':v).trim().toLowerCase(); if(['ja','yes'].includes(v)) return 'Ja'; if(['nein','no'].includes(v)) return 'Nein'; return String(v); }
+  const COLUMN_LABELS={order_id:'Bestellnr.',country:'Land',device_type:'Gerät',order_value:'Bestellwert',discount_pct:'Rabatt',delivery_days:'Liefertage',support_tickets:'Tickets',customer_name:'Name',email:'E-Mail',returned:'Retoure'};
+  function avgNumeric(rows, key){ const vals = rows.map(r=>r[key]).filter(v=>typeof v==='number'); return vals.reduce((a,b)=>a+b,0)/(vals.length||1); }
+
+  // 1.2 raw preview toggle only after load
+  const loadBtn = $('loadDatasetBtn'), toggleRaw = $('toggle_raw'), rawBody = $('rawPreviewBody');
+  if(toggleRaw){ disable(toggleRaw); setChevron(toggleRaw, rawBody); }
+  if(loadBtn){ loadBtn.addEventListener('click', function(){ enable(toggleRaw); if(rawBody){ rawBody.classList.remove('hidden'); setChevron(toggleRaw, rawBody); } }); }
+
+  // 2.1 controls after analyze
+  const analyzeBtn = $('analyzeQualityBtn');
+  const analyzeEnables = ['cleanDuplicates','cleanLabels','removeMissingLabel','cleanOutliers','cleanDataErrors','anonymizeData','missingNumeric','missingCategorical','applyCleaningBtn','toggle_2_1'];
+  if(analyzeBtn){ analyzeBtn.addEventListener('click', function(){ analyzeEnables.forEach(id => enable($(id))); }); }
+
+  // slider sync
+  const augRange = $('augmentationCount'), augValue = $('augmentationCountValue');
+  function syncAug(fromRange){ if(augRange && augValue){ if(fromRange) augValue.value = augRange.value; else augRange.value = augValue.value; } }
+  if(augRange && augValue){ augRange.addEventListener('input', ()=>syncAug(true)); augValue.addEventListener('input', ()=>syncAug(false)); }
+  const sampleRange = $('sampleSlider'), sampleValue = $('samplePercent');
+  function syncSample(fromRange){ if(sampleRange && sampleValue){ if(fromRange) sampleValue.value = sampleRange.value; else sampleRange.value = sampleValue.value; } }
+  if(sampleRange && sampleValue){ sampleRange.addEventListener('input', ()=>syncSample(true)); sampleValue.addEventListener('input', ()=>syncSample(false)); }
+
+  function cleanedRows(){
+    const rows = typeof RAW_ROWS !== 'undefined' ? JSON.parse(JSON.stringify(RAW_ROWS)) : [];
+    const out = []; const seen = new Set();
+    const avgOrder = avgNumeric(rows.filter(r => r.order_value !== null), 'order_value');
+    const avgDiscount = avgNumeric(rows.filter(r => r.discount_pct !== null), 'discount_pct');
+    const avgDelivery = avgNumeric(rows.filter(r => r.delivery_days !== null), 'delivery_days');
+    rows.forEach(r => {
+      if(($('cleanDuplicates')?.checked ?? false) && seen.has(r.order_id)) return;
+      seen.add(r.order_id);
+      const x = {...r};
+      if(($('cleanLabels')?.checked ?? false)) x.returned = canonicalLabel(x.returned);
+      const numStrategy = ($('missingNumeric')?.value || 'none');
+      const stat = (arr, mode) => mode === 'median' ? [...arr].sort((a,b)=>a-b)[Math.floor(arr.length/2)] : mode === 'mode' ? arr.sort((a,b)=>arr.filter(v=>v===a).length-arr.filter(v=>v===b).length).pop() : arr.reduce((a,b)=>a+b,0)/(arr.length||1);
+      if(x.order_value === null && numStrategy !== 'none') x.order_value = Number(stat(rows.map(r=>r.order_value).filter(v=>typeof v==='number'), numStrategy).toFixed(2));
+      if(x.discount_pct === null && numStrategy !== 'none') x.discount_pct = Number(stat(rows.map(r=>r.discount_pct).filter(v=>typeof v==='number'), numStrategy).toFixed(2));
+      if(x.delivery_days === null && numStrategy !== 'none') x.delivery_days = Number(stat(rows.map(r=>r.delivery_days).filter(v=>typeof v==='number'), numStrategy).toFixed(2));
+      if(($('cleanOutliers')?.checked ?? false) && typeof x.order_value === 'number' && x.order_value > 3000) return;
+      if(($('cleanDataErrors')?.checked ?? false) && typeof x.order_value === 'number' && x.order_value < 0) x.order_value = Math.abs(x.order_value);
+      if(($('anonymizeData')?.checked ?? false)){ x.customer_name = 'ANONYMISIERT'; x.email = 'anonymisiert@example.com'; }
+      if(String(x.device_type).toLowerCase() === 'mob' || String(x.device_type).toLowerCase() === 'mobile') x.device_type = 'Mobile';
+      out.push(x);
+    });
+    return out;
+  }
+  function transformedRows(){
+    return cleanedRows().map(r => ({
+      ...r,
+      device_type: String(r.device_type).trim().charAt(0).toUpperCase() + String(r.device_type).trim().slice(1).toLowerCase(),
+      order_value: typeof r.order_value === 'number' ? Number(r.order_value).toFixed(2) : r.order_value,
+      discount_pct: typeof r.discount_pct === 'number' ? Number(r.discount_pct).toFixed(0) : r.discount_pct,
+      delivery_days: typeof r.delivery_days === 'number' ? Number(r.delivery_days).toFixed(0) : r.delivery_days,
+      returned: canonicalLabel(r.returned)
+    }));
+  }
+  function augmentedRows(){
+    const rows = transformedRows();
+    const extra = Number(($('augmentationCountValue')||$('augmentationCount')||{}).value || 0);
+    const cap = Math.min(extra, 30);
+    for(let i=0;i<cap;i++){
+      rows.push({
+        _uid:'S'+(i+1),
+        order_id:'S-'+String(4001+i),
+        country:['DE','AT','CH','IT'][i%4],
+        device_type:['Mobile','Desktop','Tablet'][i%3],
+        order_value:(99.9+i).toFixed(2),
+        discount_pct:String((i*3)%30),
+        delivery_days:String((i%8)+1),
+        support_tickets:(i%5),
+        customer_name:'Synthetisch '+(i+1),
+        email:'synthetic.'+(i+1)+'@example.com',
+        returned:i%2===0?'Ja':'Nein'
+      });
+    }
+    return rows;
+  }
+  function sampledRows(){
+    const rows = augmentedRows();
+    const count = Number(($('samplePercent')||{}).value || rows.length);
+    return rows.slice(0, Math.max(0, Math.min(count, rows.length)));
+  }
+
+  // Preview updates (previewRows already limits to 10 and uses initial randomized subset)
+  $('applyCleaningBtn')?.addEventListener('click', function(){ if($('preview2aTable')) $('preview2aTable').innerHTML = previewRows(cleanedRows(), PREVIEW_KEYS); });
+  $('applyTransformBtn')?.addEventListener('click', function(){ if($('preview2bTable')) $('preview2bTable').innerHTML = previewRows(transformedRows(), PREVIEW_KEYS); if($('preview2bBody')) $('preview2bBody').classList.remove('hidden'); setChevron($('toggle_2_2'), $('preview2bBody')); });
+  $('applyAugmentBtn')?.addEventListener('click', function(){ if($('preview2cTable')) $('preview2cTable').innerHTML = previewRows(augmentedRows(), PREVIEW_KEYS); if($('preview2cBody')) $('preview2cBody').classList.remove('hidden'); setChevron($('toggle_2_3'), $('preview2cBody')); });
+  $('applySamplingBtn')?.addEventListener('click', function(){ if($('preview2dTable')) $('preview2dTable').innerHTML = previewRows(sampledRows(), PREVIEW_KEYS); if($('preview2dBody')) $('preview2dBody').classList.remove('hidden'); setChevron($('toggle_2_4'), $('preview2dBody')); if($('sampleBox')) $('sampleBox').textContent = 'Stichprobenerhebung angewendet. Verarbeitet wurden intern '+rowsCountString(sampledRows())+'; angezeigt werden weiterhin 10 Zeilen.'; });
+  function rowsCountString(rows){ return rows.length + ' Datensätze'; }
+
+  // merged 3.1 feature section: exakt ausgewählte Features + Retoure in der Datenansicht
+  const toggle31 = $('toggle_3_1'), body31 = $('preview3aBody'), table31 = $('preview3aTable');
+  function chosenKeys(){
+    return qa($('featureList'),'input[type="checkbox"]').filter(cb => cb.checked).map(cb => cb.dataset.feature).filter(Boolean);
+  }
+  function viewKeys(){
+    const selected = chosenKeys();
+    return selected.length ? Array.from(new Set([...selected, 'returned'])) : [];
+  }
+  function refreshFeatureView(){
+    const selected = chosenKeys();
+    if(selected.length){
+      enable($('downloadCsvBtn'));
+    } else {
+      disable($('downloadCsvBtn'));
+    }
+    if($('sumFeatures')) $('sumFeatures').textContent = selected.length + ' ausgewählt';
+    if($('sumState')) $('sumState').textContent = selected.length ? 'Features ausgewählt' : 'Rohzustand';
+  }
+  $('next2_4')?.addEventListener('click', function(){
+    qa($('featureList'),'input[type="checkbox"]').forEach((cb, idx) => {
+      enable(cb);
+      cb.checked = false;
+      cb.dataset.feature = cb.dataset.feature || FEATURES[idx] || '';
+      const strong = cb.closest('label')?.querySelector('strong');
+      if(strong) strong.textContent = COLUMN_LABELS[cb.dataset.feature] || cb.dataset.feature || '';
+    });
+    disable($('downloadCsvBtn'));
+    if($('sumFeatures')) $('sumFeatures').textContent = '0 ausgewählt';
+    if($('sumState')) $('sumState').textContent = 'Rohzustand';
+  });
+  qa($('featureList'),'input[type="checkbox"]').forEach(cb => {
+    cb.addEventListener('change', () => setTimeout(refreshFeatureView, 0));
+    cb.addEventListener('click', () => setTimeout(refreshFeatureView, 0));
+  });
+  const featureListEl = $('featureList');
+  ['change','input','click'].forEach(evt => featureListEl?.addEventListener(evt, function(e){
+    if(e.target && e.target.matches('input[type="checkbox"]')) setTimeout(refreshFeatureView, 0);
+  }));
+  toggle31?.addEventListener('click', function(){});
+  $('downloadCsvBtn')?.addEventListener('click', function(){
+    const selected = chosenKeys();
+    const keys = selected.length ? Array.from(new Set([...selected, 'returned'])) : [];
+    const rows = augmentedRows().map(r => { const x={}; keys.forEach(k => x[k]=r[k]); return x; });
+    if(!keys.length || !rows.length) return;
+    const csv = [keys.join(',')].concat(rows.map(r => keys.map(k => '"'+String(r[k] ?? '').replace(/"/g,'""')+'"').join(','))).join('\n');
+    const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+    const a = document.createElement('a'); const url = URL.createObjectURL(blob);
+    a.href = url; a.download = 'final_aufbereitete_daten.csv'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url), 1000);
+  });
+})();
+</script></body>
+</html>
