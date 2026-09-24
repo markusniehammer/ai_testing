@@ -1,0 +1,889 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Testen von Eingabedaten für ML-Systeme – v2</title>
+<style>
+  :root {
+    --bg: #08111f; --bg2: #111b35; --text: #eef4ff; --muted: #bfd0ee;
+    --blue: #7db0ff; --blue2: #9f85ff; --green: #81e6b3; --yellow: #ffd166; --red: #ff9a9a;
+    --best: #f0c75e; --shadow: 0 18px 44px rgba(0,0,0,.28); --radius: 22px;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { margin:0; color:var(--text); font-family:Inter,Segoe UI,Arial,sans-serif; background:radial-gradient(circle at top right, rgba(125,176,255,.18), transparent 16%),radial-gradient(circle at 16% 18%, rgba(159,133,255,.12), transparent 22%),linear-gradient(180deg, var(--bg) 0%, var(--bg2) 100%); min-height:100vh; }
+  .app { display:grid; grid-template-columns:320px minmax(0,1fr); min-height:100vh; }
+  .sidebar { position:sticky; top:0; height:100vh; padding:22px 18px; background:rgba(8,16,32,.72); backdrop-filter:blur(18px) saturate(160%); border-right:1px solid rgba(255,255,255,.08); overflow-y:auto; }
+  .glass { background:linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.05)); border:1px solid rgba(255,255,255,.10); box-shadow:var(--shadow); backdrop-filter:blur(18px) saturate(180%); }
+  .brand { padding:16px; margin-bottom:18px; border-radius:var(--radius); } .brand h1{margin:0 0 7px;font-size:1.16rem;} .brand p{margin:0;color:var(--muted);font-size:.9rem;line-height:1.45;}
+  .menu-title{margin:14px 8px 10px;color:var(--muted);font-size:.78rem;letter-spacing:.08em;text-transform:uppercase;} .step-menu{display:grid;gap:8px;}
+  .step-link{display:block;text-decoration:none;color:var(--text);padding:12px 14px;border-radius:15px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);transition:.18s ease;} .step-link:hover{background:rgba(255,255,255,.08);} .step-link.active{background:linear-gradient(135deg, rgba(125,176,255,.22), rgba(159,133,255,.14));border-color:rgba(125,176,255,.38);} .step-link .idx{display:block;color:var(--blue);font-weight:800;font-size:.78rem;margin-bottom:4px;} .step-link .title{display:block;font-weight:800;} .step-link .hint{display:block;color:var(--muted);font-size:.82rem;margin-top:2px;}
+  .main{padding:28px;}
+  .kicker{display:inline-block;margin-bottom:10px;padding:6px 10px;border-radius:999px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.08);font-size:.8rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;}
+  .hero { padding:24px; margin-bottom:18px; border-radius:26px; background:linear-gradient(135deg, rgba(125,176,255,.19), rgba(159,133,255,.14)); border:1px solid rgba(255,255,255,.10); box-shadow:var(--shadow); backdrop-filter:blur(18px) saturate(170%); }
+  .hero h2 { margin:0 0 8px; font-size:1.86rem; line-height:1.15; }
+  .hero p { margin:0; color:var(--muted); line-height:1.55; }
+  .card { padding:20px; margin-bottom:18px; border-radius:var(--radius); background:linear-gradient(180deg, rgba(255,255,255,.085), rgba(255,255,255,.045)); border:1px solid rgba(255,255,255,.09); box-shadow:var(--shadow); backdrop-filter:blur(16px) saturate(180%); position:relative; z-index:1; }
+  .card h3 { margin:0 0 6px; font-size:1.2rem; }
+  .sub { margin:0 0 14px; color:var(--muted); line-height:1.5; }
+  .subhead { display:flex; align-items:center; gap:9px; margin:16px 0 8px; font-size:1rem; font-weight:900; color:var(--blue); }
+  .subhead .tag { background:rgba(125,176,255,.16); border:1px solid rgba(125,176,255,.32); color:var(--text); padding:2px 10px; border-radius:999px; font-size:.72rem; }
+  .grid-3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;} @media (max-width:900px){.grid-3{grid-template-columns:1fr;}}
+  .label-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;} label{font-weight:800;} .hint-text{color:var(--muted);font-size:.86rem;line-height:1.45;margin-top:4px;}
+  .tooltip{position:relative;display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;border:1px solid rgba(255,255,255,.15);color:var(--muted);font-size:.76rem;cursor:help;}
+  .tooltip::after{content:attr(data-tip);position:absolute;left:50%;top:calc(100% + 10px);transform:translateX(-50%);width:min(320px,85vw);background:#111a36;color:var(--text);border:1px solid rgba(255,255,255,.2);border-radius:14px;padding:10px 12px;font-size:.82rem;line-height:1.45;box-shadow:var(--shadow);opacity:0;visibility:hidden;transition:.16s ease;z-index:50;pointer-events:none;} .tooltip:hover::after,.tooltip:focus::after{opacity:1;visibility:visible;}
+  input[type="number"],input[type="range"],select,textarea{width:100%;padding:10px 12px;border-radius:14px;border:1px solid rgba(255,255,255,.11);background:#0f1a35;color:var(--text);outline:none;font-family:inherit;}
+  textarea{resize:vertical;min-height:70px;line-height:1.5;}
+  input[type="range"]{padding:0;accent-color:var(--blue);cursor:pointer;background:transparent;}
+  button{appearance:none;border:0;cursor:pointer;border-radius:15px;padding:10px 16px;font-weight:800;transition:.18s ease;font-size:.92rem;} .btn-primary{color:white;background:linear-gradient(135deg,var(--blue),var(--blue2));box-shadow:0 12px 28px rgba(125,176,255,.22);} .btn-primary:hover{transform:translateY(-1px);} .btn-secondary{color:var(--text);background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.08);} .btn-secondary:hover{background:rgba(255,255,255,.11);} .btn-row{display:flex;gap:10px;flex-wrap:wrap;}
+  .meta-box{padding:12px 14px;border-radius:16px;background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.09);color:var(--muted);line-height:1.5;font-size:.88rem;}
+  .note{padding:12px 14px;border-radius:16px;background:rgba(125,176,255,.08);border:1px solid rgba(125,176,255,.18);color:var(--muted);font-size:.86rem;line-height:1.5;}
+  .badge{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:999px;background:rgba(125,176,255,.16);color:var(--text);font-size:.78rem;border:1px solid rgba(125,176,255,.28);}
+  .badge.ok{background:rgba(134,230,178,.18);border-color:rgba(134,230,178,.35);color:#c9f7dd;}
+  .badge.warn{background:rgba(255,154,154,.16);border-color:rgba(255,154,154,.34);color:#ffd9d9;}
+  .badge.muted{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.12);color:var(--muted);}
+  .table-wrap{overflow:auto;border-radius:16px;border:1px solid rgba(255,255,255,.08);margin-top:10px;} table{width:100%;border-collapse:collapse;min-width:520px;} th,td{border:1px solid rgba(255,255,255,.08);padding:7px 9px;text-align:left;font-size:.86rem;} th{background:rgba(255,255,255,.06);} td{background:rgba(255,255,255,.02);}
+  .pipeline{display:flex;gap:10px;flex-wrap:wrap;align-items:stretch;}
+  .stage-box{flex:1 1 150px;padding:12px 14px;border-radius:16px;background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.09);cursor:pointer;transition:.16s ease;} .stage-box:hover{background:rgba(255,255,255,.09);} .stage-box.active{background:linear-gradient(135deg, rgba(125,176,255,.22), rgba(159,133,255,.14));border-color:rgba(125,176,255,.4);} .stage-box .s-title{font-weight:900;color:var(--blue);margin-bottom:4px;font-size:.88rem;} .stage-arrow{display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:1.2rem;padding:0 2px;}
+  .quick-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:14px;} @media (max-width:760px){.quick-metrics{grid-template-columns:1fr;}}
+  .quick-metric{padding:14px;border-radius:18px;background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.09);text-align:center;} .quick-metric .l{color:var(--muted);font-size:.84rem;} .quick-metric .v{margin-top:5px;font-size:1.2rem;font-weight:900;}
+  .status-box{white-space:pre-line;min-height:70px;max-height:220px;overflow:auto;background:#0e1731;color:#dce8ff;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;line-height:1.5;border-radius:16px;border:1px solid rgba(255,255,255,.09);padding:12px 14px;margin-top:12px;font-size:.86rem;}
+  .metrics-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;} @media (max-width:760px){.metrics-grid{grid-template-columns:1fr;}}
+  .metric-donut-card{padding:16px;text-align:center;border-radius:20px;background:linear-gradient(180deg, rgba(255,255,255,.085), rgba(255,255,255,.045));border:1px solid rgba(255,255,255,.09);box-shadow:var(--shadow);}
+  .donut{width:112px;height:112px;border-radius:50%;margin:0 auto 10px;position:relative;display:flex;align-items:center;justify-content:center;background:conic-gradient(var(--clr,var(--blue)) calc(var(--pct,0)*1%), rgba(255,255,255,.08) 0);}
+  .donut::before{content:'';position:absolute;inset:11px;border-radius:50%;background:#101c38;}
+  .donut-value{position:relative;z-index:1;font-size:1.28rem;font-weight:900;}
+  .donut.blue{--clr:var(--blue);} .donut.purple{--clr:var(--blue2);} .donut.green{--clr:var(--green);} .donut.yellow{--clr:var(--yellow);} .donut.red{--clr:var(--red);}
+  .metric-name{font-weight:900;margin-bottom:2px;font-size:.9rem;}
+  td.cell-missing{background:rgba(255,154,154,.22) !important;color:#ffd9d9;font-style:italic;}
+  tr.row-duplicate td{background:rgba(255,209,102,.14) !important;}
+  tr.row-outlier td{background:rgba(159,133,255,.18) !important;}
+  tr.row-mismatch td{background:rgba(255,154,154,.14) !important;}
+  .chart-canvas{width:100%;height:190px;border-radius:16px;background:#0e1731;border:1px solid rgba(255,255,255,.08);display:block;}
+  .legend{display:flex;gap:14px;flex-wrap:wrap;color:var(--muted);font-size:.84rem;margin-top:8px;}
+  .legend-dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;}
+  .check-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);} .check-item input[type="checkbox"]{width:18px;height:18px;accent-color:var(--blue);cursor:pointer;flex:0 0 auto;}
+  .checkbox-inline{display:flex;align-items:center;gap:8px;font-weight:700;font-size:.88rem;} .checkbox-inline input[type="checkbox"]{width:18px;height:18px;accent-color:var(--blue);cursor:pointer;}
+  .toggle-switch{position:relative;display:inline-block;width:38px;height:22px;vertical-align:middle;margin-right:8px;}
+  .toggle-switch input{opacity:0;width:0;height:0;position:absolute;}
+  .toggle-slider{position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.15);border-radius:999px;transition:.18s ease;}
+  .toggle-slider::before{content:'';position:absolute;height:16px;width:16px;left:2px;top:2px;background:var(--text);border-radius:50%;transition:.18s ease;}
+  .toggle-switch input:checked + .toggle-slider{background:linear-gradient(135deg,var(--blue),var(--blue2));}
+  .toggle-switch input:checked + .toggle-slider::before{transform:translateX(16px);}
+  .constraint-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;}
+  .constraint-box{padding:14px;border-radius:18px;background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.09);display:flex;flex-direction:column;gap:9px;}
+  .cbox-title{font-weight:900;color:var(--blue);font-size:.94rem;}
+  .cbox-rule{color:var(--muted);font-size:.82rem;line-height:1.4;margin-top:-4px;}
+  .cbox-result{font-size:.86rem;}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand glass">
+      <h1>Kapitel 5</h1>
+      <p>Testen von Eingabedaten für ML-Systeme</p>
+    </div>
+    <div class="menu-title">Navigation</div>
+    <nav class="step-menu" id="stepMenu">
+      <a class="step-link active" href="#step2"><span class="idx">5.1.2</span><span class="title">Bias</span><span class="hint">Counterfactual-Test</span></a>
+      <a class="step-link" href="#step3"><span class="idx">5.1.3</span><span class="title">Pipeline</span><span class="hint">Data-Pipeline-Testing</span></a>
+      <a class="step-link" href="#step4"><span class="idx">5.1.4</span><span class="title">Repräsentativität</span><span class="hint">Verteilungen vergleichen</span></a>
+      <a class="step-link" href="#step5"><span class="idx">5.1.5</span><span class="title">Constraints</span><span class="hint">Dataset-Constraint-Testing</span></a>
+      <a class="step-link" href="#step6"><span class="idx">5.1.6</span><span class="title">Label-Korrektheit</span><span class="hint">Label-Correctness-Testing</span></a>
+    </nav>
+  </aside>
+
+  <main class="main">
+
+    <section class="hero">
+      <div class="kicker">Übung · Kapitel 5</div>
+      <h2>Testen von Eingabedaten für Machine-Learning-Systeme</h2>
+      <p>Diese Übung führt durch das Kapitel 5 des Syllabus: von Bias-, Pipeline-, Repräsentativitäts- und Label-Tests bis zum praktischen Kern – der Hands-on-Übung <strong>5.1.7</strong>, in der du einen echten Datensatz auf fehlende Werte, Duplikate und Ausreißer prüfst.</p>
+    </section>
+
+    <section class="card" id="step2">
+      <h3>5.1.2 Testen auf Bias</h3>
+      <p class="sub">Der Lehrplan nennt mehrere Testansätze für Bias. In dieser Übung ist nur <strong>Disparate Impact Analysis</strong> aktiv nutzbar.</p>
+      <div class="label-row"><label for="biasApproachSelect">Test-Ansatz</label><span class="tooltip" tabindex="0" data-tip="Nur Disparate Impact Analysis ist in dieser Demo interaktiv umgesetzt. Die übrigen Ansätze sind zur Orientierung aufgeführt.">?</span></div>
+      <select id="biasApproachSelect"></select>
+
+      <div class="subhead"><span class="tag">Schritt 1</span> Sensibles Merkmal wählen</div>
+      <p class="sub">Wähle über die Radiobuttons im Tabellenkopf, welches Merkmal für das Kontrafaktum verändert werden soll.</p>
+
+      <div class="subhead"><span class="tag">Schritt 2</span> Kontrafaktum bearbeiten</div>
+      <p class="sub">Bearbeite pro Zeile das Kontrafaktum: bei „Geschlecht" per Toggle (kippen ja/nein), bei „Einkommen" per Regler.</p>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th><label><input type="radio" name="biasAttr" id="radioAttrGender" checked> Geschlecht</label></th>
+              <th><label><input type="radio" name="biasAttr" id="radioAttrIncome"> Einkommen (€)</label></th>
+              <th>Kontrafaktum</th>
+              <th>Entscheidung (Original)</th>
+              <th>Entscheidung (Kontrafaktum)</th>
+              <th>Geändert?</th>
+            </tr>
+          </thead>
+          <tbody id="biasTableBody"></tbody>
+        </table>
+      </div>
+
+      <div class="subhead"><span class="tag">Schritt 3</span> Test starten</div>
+      <div class="btn-row"><button type="button" class="btn-primary" id="biasRunBtn">Test starten</button></div>
+
+      <div class="subhead"><span class="tag">Schritt 4</span> Ergebnis</div>
+      <canvas id="biasChartCanvas" class="chart-canvas"></canvas>
+      <div class="metrics-grid" style="margin-top:14px;">
+        <div class="metric-donut-card">
+          <div class="donut red" id="donutBias"><span class="donut-value">– %</span></div>
+          <div class="metric-name">Anteil geänderter Entscheidungen</div>
+        </div>
+      </div>
+      <div class="note" style="margin-top:12px;">In dieser Demo verwendet das (bewusst vereinfachte) Modell für Frauen eine höhere Einkommensschwelle als für Männer – ein Lehrbeispiel für algorithmischen Bias, wie ihn Disparate Impact Analysis aufdecken soll.</div>
+    </section>
+
+    <section class="card" id="step3">
+      <h3>5.1.3 Data-Pipeline-Testing</h3>
+      <p class="sub">Data-Pipeline-Testing erfolgt schichtweise. Klicke auf eine Stufe, um zu sehen, welcher Testfokus dort jeweils gilt.</p>
+      <div class="pipeline" id="pipelineStages"></div>
+      <div class="meta-box" id="pipelineDetail" style="margin-top:12px;">Wähle oben eine Stufe aus.</div>
+    </section>
+
+    <section class="card" id="step4">
+      <h3>5.1.4 Testen auf Daten-Repräsentativität</h3>
+      <p class="sub">Vergleiche Trainings- und Referenzdaten anhand von Verteilungen, Merkmalszusammenhängen und formalen Tests, um Bias, Lücken, Anomalien und Klassen-Ungleichgewichte zu erkennen.</p>
+
+      <div class="label-row"><label>Datensatz-Auszug (Trainingsdaten)</label></div>
+      <div class="table-wrap" id="repExcerptWrap"></div>
+
+      <div class="grid-3" style="margin-top:14px;">
+        <div>
+          <div class="label-row"><label for="repFeatureSelect">Merkmal</label><span class="tooltip" tabindex="0" data-tip="Wählt das Merkmal für Histogramm und statistische Tests aus.">?</span></div>
+          <select id="repFeatureSelect"><option value="alter">Alter</option><option value="einkommen">Einkommen</option></select>
+        </div>
+        <div>
+          <div class="label-row"><label for="skewSlider">Verzerrung (Skew)</label><span class="tooltip" tabindex="0" data-tip="Verschiebt den Trainingsdatensatz künstlich weg von der erwarteten Betriebsverteilung.">?</span></div>
+          <input id="skewSlider" type="range" min="0" max="100" step="1" value="0">
+        </div>
+        <div>
+          <div class="label-row"><label for="imbalanceSlider">Klassen-Ungleichgewicht</label><span class="tooltip" tabindex="0" data-tip="Verschiebt die Segmentverteilung (A/B/C) im Trainingsdatensatz zunehmend zu Segment A.">?</span></div>
+          <input id="imbalanceSlider" type="range" min="0" max="100" step="1" value="0">
+        </div>
+      </div>
+      <div class="check-item" style="margin-top:12px;max-width:460px;">
+        <input type="checkbox" id="anomalyCheckbox">
+        <label for="anomalyCheckbox">Anomalien einstreuen (Alterslücke 45–55 + Einkommens-Ausreißer)</label>
+      </div>
+
+      <div class="subhead"><span class="tag">Verteilung</span> Histogramm (Referenz vs. Training)</div>
+      <canvas id="repHistCanvas" class="chart-canvas"></canvas>
+      <div class="legend"><span><span class="legend-dot" style="background:#7db0ff"></span>Referenzverteilung (Betrieb)</span><span><span class="legend-dot" style="background:#ffd166"></span>Trainingsdatensatz</span></div>
+
+      <div class="subhead"><span class="tag">Zusammenhang</span> Alter vs. Einkommen (Streudiagramm, gefärbt nach Segment)</div>
+      <canvas id="repScatterCanvas" class="chart-canvas" style="height:220px;"></canvas>
+      <div class="legend"><span><span class="legend-dot" style="background:#7db0ff"></span>Segment A</span><span><span class="legend-dot" style="background:#9f85ff"></span>Segment B</span><span><span class="legend-dot" style="background:#81e6b3"></span>Segment C</span></div>
+
+      <div class="subhead"><span class="tag">Balance</span> Segmentverteilung (Referenz vs. Training)</div>
+      <canvas id="repSegCanvas" class="chart-canvas"></canvas>
+      <div class="legend"><span><span class="legend-dot" style="background:#7db0ff"></span>Referenz</span><span><span class="legend-dot" style="background:#ffd166"></span>Training</span></div>
+
+      <div class="quick-metrics">
+        <div class="quick-metric"><div class="l">Pearson-Korrelation (Alter/Einkommen)</div><div class="v" id="repCorrValue">–</div></div>
+        <div class="quick-metric"><div class="l">Chi²-Test (Segmentverteilung)</div><div class="v" id="repChiValue">–</div></div>
+        <div class="quick-metric"><div class="l">Kolmogorov-Smirnov D (gewähltes Merkmal)</div><div class="v" id="repKsValue">–</div></div>
+      </div>
+      <div class="metrics-grid" style="margin-top:14px;">
+        <div class="metric-donut-card">
+          <div class="donut green" id="donutSimilarity"><span class="donut-value">100 %</span></div>
+          <div class="metric-name">Verteilungs-Ähnlichkeit (Histogramm-Overlap)</div>
+        </div>
+      </div>
+      <div class="note" style="margin-top:12px;">Chi²- und KS-Test sind hier didaktisch vereinfacht implementiert und dienen der Veranschaulichung, nicht einer statistisch strengen Produktionsimplementierung.</div>
+    </section>
+
+    <section class="card" id="step5">
+      <h3>5.1.5 Dataset-Constraint-Testing</h3>
+      <p class="sub">Constraints prüfen, ob ein Datensatz vordefinierte Regeln einhält. Stelle je Constraint-Typ die Regel ein und klicke „Test" – Befunde werden auch in der Datensatz-Vorschau markiert.</p>
+
+      <div class="label-row"><label>Datensatz-Vorschau</label></div>
+      <div class="table-wrap" id="constraintPreviewWrap"></div>
+
+      <div class="constraint-grid" style="margin-top:14px;">
+        <div class="constraint-box">
+          <div class="cbox-title">Missing</div>
+          <div class="cbox-rule">Regel: Fehlende Werte sind nicht erlaubt.</div>
+          <label class="checkbox-inline"><input type="checkbox" id="ctrlMissingActive" checked> Regel aktiv</label>
+          <div class="btn-row"><button type="button" class="btn-secondary" id="testMissingBtn">Test</button></div>
+          <div class="cbox-result" id="resultMissing">Noch nicht getestet.</div>
+        </div>
+        <div class="constraint-box">
+          <div class="cbox-title">Range</div>
+          <div class="cbox-rule">Regel: „Alter" darf einen Maximalwert nicht überschreiten.</div>
+          <div class="label-row"><label for="ctrlRangeMax">Maximalwert</label><span id="ctrlRangeMaxValue">120</span></div>
+          <input type="range" id="ctrlRangeMax" min="18" max="150" step="1" value="120">
+          <div class="btn-row"><button type="button" class="btn-secondary" id="testRangeBtn">Test</button></div>
+          <div class="cbox-result" id="resultRange">Noch nicht getestet.</div>
+        </div>
+        <div class="constraint-box">
+          <div class="cbox-title">Type</div>
+          <div class="cbox-rule">Regel: „PLZ" muss einem Format entsprechen.</div>
+          <select id="ctrlTypeSelect">
+            <option value="plz5" selected>5-stellig (DE)</option>
+            <option value="plz4">4-stellig (AT/CH)</option>
+            <option value="any">beliebig (kein Format geprüft)</option>
+          </select>
+          <div class="btn-row"><button type="button" class="btn-secondary" id="testTypeBtn">Test</button></div>
+          <div class="cbox-result" id="resultType">Noch nicht getestet.</div>
+        </div>
+        <div class="constraint-box">
+          <div class="cbox-title">Duplicate</div>
+          <div class="cbox-rule">Regel: Keine identischen Zeilen erlaubt.</div>
+          <label class="checkbox-inline"><input type="checkbox" id="ctrlDuplicateActive" checked> Regel aktiv</label>
+          <div class="btn-row"><button type="button" class="btn-secondary" id="testDuplicateBtn">Test</button></div>
+          <div class="cbox-result" id="resultDuplicate">Noch nicht getestet.</div>
+        </div>
+        <div class="constraint-box">
+          <div class="cbox-title">Outlier</div>
+          <div class="cbox-rule">Regel: „Einkommen" außerhalb des IQR-Bereichs ist nicht erlaubt.</div>
+          <label class="checkbox-inline"><input type="checkbox" id="ctrlOutlierActive" checked> Regel aktiv</label>
+          <div class="btn-row"><button type="button" class="btn-secondary" id="testOutlierBtn">Test</button></div>
+          <div class="cbox-result" id="resultOutlier">Noch nicht getestet.</div>
+        </div>
+        <div class="constraint-box">
+          <div class="cbox-title">Sum</div>
+          <div class="cbox-rule">Regel: Summe aller „Einkommen"-Werte darf einen Grenzwert nicht überschreiten.</div>
+          <input type="number" id="ctrlSumMax" value="2000000" step="10000">
+          <div class="btn-row"><button type="button" class="btn-secondary" id="testSumBtn">Test</button></div>
+          <div class="cbox-result" id="resultSum">Noch nicht getestet.</div>
+        </div>
+        <div class="constraint-box">
+          <div class="cbox-title">Count</div>
+          <div class="cbox-rule">Regel: Anzahl vollständiger (nicht-null) Zeilen muss einen Mindestwert erreichen.</div>
+          <input type="number" id="ctrlCountMin" value="20" step="1">
+          <div class="btn-row"><button type="button" class="btn-secondary" id="testCountBtn">Test</button></div>
+          <div class="cbox-result" id="resultCount">Noch nicht getestet.</div>
+        </div>
+        <div class="constraint-box">
+          <div class="cbox-title">Useful</div>
+          <div class="cbox-rule">Regel: Ein Attribut mit ausschließlich eindeutigen Werten (z. B. eine ID) liefert keine lernbaren Muster.</div>
+          <label class="checkbox-inline"><input type="checkbox" id="ctrlUsefulActive" checked> Regel aktiv (Spalte „Kunden-ID")</label>
+          <div class="btn-row"><button type="button" class="btn-secondary" id="testUsefulBtn">Test</button></div>
+          <div class="cbox-result" id="resultUseful">Noch nicht getestet.</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card" id="step6">
+      <h3>5.1.6 Label-Correctness-Testing</h3>
+      <p class="sub">Der Lehrplan nennt sieben Ansätze, um die Korrektheit von Labels zu prüfen. Teste den Beispieldatensatz mit jedem Ansatz einzeln – Treffer werden in der Spalte „Befund" markiert.</p>
+      <div class="btn-row">
+        <button type="button" class="btn-secondary" id="btnExpertReview">Expert Review</button>
+        <button type="button" class="btn-secondary" id="btnMultipleAnnotation">Multiple Annotation</button>
+        <button type="button" class="btn-secondary" id="btnRiskPriority">Risikobasierte Priorisierung</button>
+        <button type="button" class="btn-secondary" id="btnDistribution">Data Distribution Analysis</button>
+        <button type="button" class="btn-secondary" id="btnRuleBased">Automatisierte Regel-Tests</button>
+        <button type="button" class="btn-secondary" id="btnModelLoss">Model Loss Analysis</button>
+        <button type="button" class="btn-secondary" id="btnModelConfidence">Model Confidence Score Analysis</button>
+      </div>
+      <div class="table-wrap" style="margin-top:12px;">
+        <table>
+          <thead><tr><th>Beispiel</th><th>Annotator A</th><th>Annotator B</th><th>Befund</th></tr></thead>
+          <tbody id="labelTableBody"></tbody>
+        </table>
+      </div>
+      <div id="iaaWrap" class="metrics-grid" style="margin-top:14px;display:none;">
+        <div class="metric-donut-card">
+          <div class="donut purple" id="donutIAA"><span class="donut-value">– %</span></div>
+          <div class="metric-name">Inter-Annotator Agreement (IAA)</div>
+        </div>
+      </div>
+      <div id="labelStatusBox" class="status-box">Bereit. Wähle oben einen Testansatz.</div>
+    </section>
+
+  </main>
+</div>
+
+<script>
+  function mulberry32(a){return function(){let t=a+=0x6D2B79F5;t=Math.imul(t^(t>>>15),t|1);t^=t+Math.imul(t^(t>>>7),t|61);return((t^(t>>>14))>>>0)/4294967296;};}
+  function gaussianRandom(rnd,mean,std){let u=0,v=0;while(u===0)u=rnd();while(v===0)v=rnd();const z=Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);return mean+z*std;}
+  function $(id){ return document.getElementById(id); }
+  function setDonut(id, pct){ const el = $(id); el.style.setProperty('--pct', pct.toFixed(1)); el.querySelector('.donut-value').textContent = pct.toFixed(1)+' %'; }
+  function quantile(sorted,q){ const pos=(sorted.length-1)*q; const base=Math.floor(pos); const rest=pos-base; if(sorted[base+1]!==undefined) return sorted[base]+rest*(sorted[base+1]-sorted[base]); return sorted[base]; }
+  function setResult(id, failed, text){ $(id).innerHTML = '<span class="badge '+(failed?'warn':'ok')+'">'+(failed?'Fehlgeschlagen':'Bestanden')+'</span><div class="hint-text">'+text+'</div>'; }
+  function pearsonR(xs,ys){ const n=xs.length; const mx=xs.reduce((a,b)=>a+b,0)/n; const my=ys.reduce((a,b)=>a+b,0)/n; let num=0,dx2=0,dy2=0; for(let i=0;i<n;i++){ const dx=xs[i]-mx, dy=ys[i]-my; num+=dx*dy; dx2+=dx*dx; dy2+=dy*dy; } return num/Math.sqrt((dx2*dy2)||1); }
+  function ksStatistic(xs,ys){ const sx=[...xs].sort((a,b)=>a-b), sy=[...ys].sort((a,b)=>a-b); const all=[...sx,...sy].sort((a,b)=>a-b); function cdf(sorted,v){ let lo=0,hi=sorted.length; while(lo<hi){ const mid=(lo+hi)>>1; if(sorted[mid]<=v) lo=mid+1; else hi=mid; } return lo/sorted.length; } let maxD=0; all.forEach(v=>{ const d=Math.abs(cdf(sx,v)-cdf(sy,v)); if(d>maxD) maxD=d; }); return maxD; }
+
+  // ---------- Generic chart helpers ----------
+  function drawGroupedBars(ctx, W, H, categories, series){
+    const margin=30; const n=series.length; const groupW=(W-2*margin)/categories.length; const barW=(groupW*0.7)/n;
+    const maxVal = Math.max(...series.flatMap(s=>s.values), 0.0001);
+    categories.forEach((cat,ci)=>{
+      const gx = margin + ci*groupW + (groupW-barW*n)/2;
+      series.forEach((s,si)=>{
+        const val = s.values[ci]||0;
+        const h = (val/maxVal)*(H-2*margin);
+        ctx.fillStyle = s.color;
+        ctx.fillRect(gx+si*barW, H-margin-h, barW*0.9, h);
+      });
+      ctx.fillStyle = '#bfd0ee'; ctx.font='10px Inter, Arial, sans-serif'; ctx.textAlign='center';
+      ctx.fillText(cat, gx+(barW*n)/2, H-margin+14);
+    });
+  }
+  function drawSimpleBars(ctx, W, H, items){
+    const margin=30, gap=(W-2*margin)/items.length, barW=gap*0.5;
+    const maxVal = Math.max(...items.map(i=>i.value),1);
+    items.forEach((item,idx)=>{
+      const x = margin + idx*gap + (gap-barW)/2;
+      const h = (item.value/maxVal)*(H-2*margin);
+      ctx.fillStyle = item.color;
+      ctx.fillRect(x, H-margin-h, barW, h);
+      ctx.fillStyle = '#bfd0ee'; ctx.font='11px Inter, Arial, sans-serif'; ctx.textAlign='center';
+      ctx.fillText(item.label+' ('+item.value+')', x+barW/2, H-margin+16);
+    });
+  }
+  function drawScatter(ctx, W, H, points, xMin, xMax, yMin, yMax, colorFn){
+    const margin=30;
+    points.forEach(p=>{
+      const x = margin + ((p.x-xMin)/(xMax-xMin))*(W-2*margin);
+      const y = H-margin - ((p.y-yMin)/(yMax-yMin))*(H-2*margin);
+      ctx.fillStyle = colorFn(p);
+      ctx.beginPath(); ctx.arc(x,y,3,0,Math.PI*2); ctx.fill();
+    });
+  }
+
+  // ---------- 5.1.2 Bias ----------
+  function generateBiasData(seed){
+    const rnd = mulberry32(seed);
+    const rows = [];
+    for(let i=0;i<12;i++){
+      const gender = rnd()<0.5 ? 'M' : 'F';
+      const einkommen = Math.round(35000 + rnd()*45000);
+      rows.push({ gender, einkommen });
+    }
+    return rows;
+  }
+  function biasThreshold(gender){ return gender==='F' ? 63000 : 55000; }
+  function biasDecision(gender, einkommen){ return einkommen >= biasThreshold(gender) ? 'Bewilligt' : 'Abgelehnt'; }
+  const biasData = generateBiasData(7);
+  const biasState = { attr:'gender', genderFlipped: biasData.map(()=>false), incomeOverride: biasData.map(r=>r.einkommen) };
+  let lastBiasResult = null;
+  const BIAS_APPROACHES = [
+    { value:'disparate', label:'Disparate Impact Analysis', enabled:true },
+    { value:'demographic', label:'Demographic Parity Testing', enabled:false },
+    { value:'equalopp', label:'Equal Opportunity Testing', enabled:false },
+    { value:'equalodds', label:'Equalized Odds Testing', enabled:false },
+    { value:'counterfactual', label:'Counterfactual Fairness Testing', enabled:false },
+    { value:'individual', label:'Individual Fairness Testing', enabled:false },
+    { value:'subgroup', label:'Subgroup Analysis', enabled:false }
+  ];
+  function renderBiasApproachSelect(){
+    $('biasApproachSelect').innerHTML = BIAS_APPROACHES.map(a=>
+      '<option value="'+a.value+'" '+(a.enabled?'':'disabled')+' '+(a.value==='disparate'?'selected':'')+'>'+a.label+(a.enabled?'':' (in dieser Demo nicht verfügbar)')+'</option>'
+    ).join('');
+  }
+  function attachBiasRowControlEvents(){
+    Array.from(document.querySelectorAll('.genderFlipToggle')).forEach(el=>{
+      el.addEventListener('change', ()=>{ biasState.genderFlipped[Number(el.dataset.idx)] = el.checked; renderBiasTable(); });
+    });
+    Array.from(document.querySelectorAll('.incomeOverrideSlider')).forEach(el=>{
+      el.addEventListener('input', ()=>{
+        const idx = Number(el.dataset.idx);
+        biasState.incomeOverride[idx] = Number(el.value);
+        const valueEl = document.querySelector('.incomeOverrideValue[data-idx="'+idx+'"]');
+        if (valueEl) valueEl.textContent = el.value+' €';
+      });
+    });
+  }
+  function biasRowControl(idx, row){
+    if (biasState.attr==='gender'){
+      const flipped = biasState.genderFlipped[idx];
+      const shown = flipped ? (row.gender==='F'?'M':'F') : row.gender;
+      return '<label class="toggle-switch"><input type="checkbox" data-idx="'+idx+'" class="genderFlipToggle" '+(flipped?'checked':'')+'><span class="toggle-slider"></span></label>'+shown;
+    }
+    const val = biasState.incomeOverride[idx];
+    return '<input type="range" min="20000" max="100000" step="1000" value="'+val+'" data-idx="'+idx+'" class="incomeOverrideSlider" style="width:130px;display:inline-block;"> <span class="hint-text incomeOverrideValue" data-idx="'+idx+'">'+val+' €</span>';
+  }
+  function renderBiasTable(){
+    $('radioAttrGender').checked = biasState.attr==='gender';
+    $('radioAttrIncome').checked = biasState.attr==='einkommen';
+    $('biasTableBody').innerHTML = biasData.map((row,idx)=>
+      '<tr><td>'+(idx+1)+'</td><td>'+row.gender+'</td><td>'+row.einkommen+'</td><td>'+biasRowControl(idx,row)+'</td><td>–</td><td>–</td><td>–</td></tr>'
+    ).join('');
+    attachBiasRowControlEvents();
+  }
+  function runBiasTest(){
+    let changed = 0;
+    const results = biasData.map((row,idx)=>{
+      const original = biasDecision(row.gender, row.einkommen);
+      const effGender = biasState.genderFlipped[idx] ? (row.gender==='F'?'M':'F') : row.gender;
+      const effIncome = biasState.incomeOverride[idx];
+      const counterfactual = biasDecision(effGender, effIncome);
+      const isChanged = original !== counterfactual;
+      if (isChanged) changed++;
+      return { row, original, counterfactual, isChanged };
+    });
+    $('biasTableBody').innerHTML = results.map((r,idx)=>
+      '<tr class="'+(r.isChanged?'row-outlier':'')+'"><td>'+(idx+1)+'</td><td>'+r.row.gender+'</td><td>'+r.row.einkommen+'</td><td>'+biasRowControl(idx,r.row)+'</td><td>'+r.original+'</td><td>'+r.counterfactual+'</td><td>'+(r.isChanged?'Ja':'Nein')+'</td></tr>'
+    ).join('');
+    attachBiasRowControlEvents();
+    setDonut('donutBias', (changed/biasData.length)*100);
+    lastBiasResult = { changed, unchanged: biasData.length-changed };
+    renderBiasChart();
+  }
+  function renderBiasChart(){
+    if (!lastBiasResult) return;
+    const canvas = $('biasChartCanvas'); const ctx = canvas.getContext('2d');
+    const W = canvas.width = canvas.clientWidth, H = canvas.height = 190;
+    ctx.clearRect(0,0,W,H);
+    drawSimpleBars(ctx, W, H, [
+      { label:'Geändert', value:lastBiasResult.changed, color:'#ff9a9a' },
+      { label:'Unverändert', value:lastBiasResult.unchanged, color:'#81e6b3' }
+    ]);
+  }
+
+  // ---------- 5.1.3 Pipeline ----------
+  const PIPELINE_STAGES = [
+    { title:'Komponente', desc:'Testet Dateneingangs-Komponenten, Transformationsskripte und Sensor-Schnittstellen mittels Code-Reviews, statischer Analyse und hardwarespezifischer Tests.' },
+    { title:'Komponentenintegration', desc:'Prüft den nahtlosen Datenfluss über interne Schnittstellen hinweg und deckt Fehler durch nicht passende Schnittstellen oder falsche Annahmen auf.' },
+    { title:'System', desc:'Smoke-, Funktions- und Nichtfunktionale Tests der zusammengesetzten Pipeline, inkl. Fault-Injection-Testing und Back-to-Back-Testing gegen die Trainings-Pipeline.' },
+    { title:'Systemintegration', desc:'Prüft das Zusammenspiel der Pipeline mit externen Systemen: Datenquellen, Speicherplattformen, Monitoring-Tools und nachgelagerten Verbrauchern wie ML-Modellen.' },
+    { title:'Produktion', desc:'Back-to-Back- und A/B-Testing im laufenden Betrieb, kontinuierliches Monitoring von Verhalten, Performance und Datenqualität in Echtzeit.' }
+  ];
+  function renderPipeline(){
+    $('pipelineStages').innerHTML = PIPELINE_STAGES.map((s,idx)=>
+      '<div class="stage-box" data-idx="'+idx+'"><div class="s-title">'+s.title+'</div></div>'+(idx<PIPELINE_STAGES.length-1?'<div class="stage-arrow">→</div>':'')
+    ).join('');
+    Array.from(document.querySelectorAll('.stage-box')).forEach(box=>{
+      box.addEventListener('click', ()=>{
+        Array.from(document.querySelectorAll('.stage-box')).forEach(b=>b.classList.remove('active'));
+        box.classList.add('active');
+        $('pipelineDetail').textContent = PIPELINE_STAGES[Number(box.dataset.idx)].desc;
+      });
+    });
+  }
+
+  // ---------- 5.1.4 Repräsentativität ----------
+  const REP_SEGMENTS = ['A','B','C'];
+  function genRepRow(rnd, segment){
+    const alter = Math.min(95, Math.max(15, gaussianRandom(rnd, 42, 13)));
+    const einkommenBase = { A:38000, B:55000, C:78000 }[segment];
+    const einkommen = Math.max(15000, einkommenBase + gaussianRandom(rnd, 0, 12000) + (alter-42)*300);
+    return { alter: Math.round(alter), einkommen: Math.round(einkommen), segment };
+  }
+  function generateRepReference(){
+    const rnd = mulberry32(11);
+    const rows = [];
+    for(let i=0;i<300;i++){ rows.push(genRepRow(rnd, REP_SEGMENTS[i%3])); }
+    return rows;
+  }
+  function generateRepTraining(skew, imbalance, anomalies){
+    const rnd = mulberry32(23);
+    const rows = [];
+    const n = 150;
+    const threshA = 0.34 + (imbalance/100)*0.5;
+    const threshB = threshA + Math.max(0.02, 0.33 - (imbalance/100)*0.25);
+    for(let i=0;i<n;i++){
+      const r = rnd();
+      const segment = r<threshA ? 'A' : (r<threshB ? 'B' : 'C');
+      const row = genRepRow(rnd, segment);
+      row.alter = Math.round(Math.min(95, Math.max(15, row.alter + skew*0.35)));
+      rows.push(row);
+    }
+    if (anomalies){
+      for(let i=rows.length-1;i>=0;i--){ if(rows[i].alter>=45 && rows[i].alter<=55 && rnd()<0.85) rows.splice(i,1); }
+      for(let i=0;i<8;i++){ rows.push({ alter: Math.round(20+rnd()*50), einkommen: Math.round(200000+rnd()*150000), segment: REP_SEGMENTS[Math.floor(rnd()*3)] }); }
+    }
+    return rows;
+  }
+  function toHistogramGeneric(values, min, max, bins){
+    const counts = Array(bins).fill(0);
+    const width = (max-min)/bins;
+    values.forEach(v=>{ let idx = Math.floor((v-min)/width); idx = Math.max(0, Math.min(bins-1, idx)); counts[idx]++; });
+    return counts.map(c=>c/values.length);
+  }
+  function formatBinLabel(feature, v){ return feature==='einkommen' ? Math.round(v/1000)+'k' : String(Math.round(v)); }
+  function chiSquaredSegments(refRows, trainRows){
+    const segCounts = rows => REP_SEGMENTS.map(s=>rows.filter(r=>r.segment===s).length);
+    const refC = segCounts(refRows), trainC = segCounts(trainRows);
+    const refTotal = refRows.length, trainTotal = trainRows.length;
+    let chi=0;
+    refC.forEach((rc,i)=>{ const expected = (rc/refTotal)*trainTotal; chi += Math.pow(trainC[i]-expected,2)/(expected||1); });
+    return chi;
+  }
+  let repReference = [], repTraining = [];
+  function renderRepExcerpt(){
+    let html = '<table><thead><tr><th>#</th><th>Alter</th><th>Einkommen (€)</th><th>Segment</th></tr></thead><tbody>';
+    repTraining.slice(0,8).forEach((r,idx)=>{ html += '<tr><td>'+(idx+1)+'</td><td>'+r.alter+'</td><td>'+r.einkommen+'</td><td>'+r.segment+'</td></tr>'; });
+    html += '</tbody></table>';
+    $('repExcerptWrap').innerHTML = html;
+  }
+  function renderRepHistogram(feature){
+    const cfg = feature==='alter' ? {min:15,max:95,bins:8} : {min:0,max:300000,bins:8};
+    const refHist = toHistogramGeneric(repReference.map(r=>r[feature]), cfg.min, cfg.max, cfg.bins);
+    const trainHist = toHistogramGeneric(repTraining.map(r=>r[feature]), cfg.min, cfg.max, cfg.bins);
+    const width = (cfg.max-cfg.min)/cfg.bins;
+    const labels = Array.from({length:cfg.bins}, (_,i)=> formatBinLabel(feature, cfg.min+i*width));
+    const canvas = $('repHistCanvas'); const ctx = canvas.getContext('2d');
+    const W = canvas.width = canvas.clientWidth, H = canvas.height = 190;
+    ctx.clearRect(0,0,W,H);
+    drawGroupedBars(ctx, W, H, labels, [ {values:refHist, color:'#7db0ff'}, {values:trainHist, color:'#ffd166'} ]);
+  }
+  function renderRepScatter(){
+    const canvas = $('repScatterCanvas'); const ctx = canvas.getContext('2d');
+    const W = canvas.width = canvas.clientWidth, H = canvas.height = 220;
+    ctx.clearRect(0,0,W,H);
+    const segColor = { A:'#7db0ff', B:'#9f85ff', C:'#81e6b3' };
+    const points = repTraining.map(r=>({x:r.alter, y:r.einkommen, segment:r.segment}));
+    drawScatter(ctx, W, H, points, 15, 95, 0, 350000, p=>segColor[p.segment]);
+  }
+  function renderRepSegmentChart(){
+    const refCounts = REP_SEGMENTS.map(s=>repReference.filter(r=>r.segment===s).length);
+    const trainCounts = REP_SEGMENTS.map(s=>repTraining.filter(r=>r.segment===s).length);
+    const canvas = $('repSegCanvas'); const ctx = canvas.getContext('2d');
+    const W = canvas.width = canvas.clientWidth, H = canvas.height = 190;
+    ctx.clearRect(0,0,W,H);
+    drawGroupedBars(ctx, W, H, REP_SEGMENTS, [ {values:refCounts, color:'#7db0ff'}, {values:trainCounts, color:'#ffd166'} ]);
+  }
+  function renderRepStats(feature){
+    const cfg = feature==='alter' ? {min:15,max:95,bins:8} : {min:0,max:300000,bins:8};
+    const refVals = repReference.map(r=>r[feature]), trainVals = repTraining.map(r=>r[feature]);
+    const refHist = toHistogramGeneric(refVals, cfg.min, cfg.max, cfg.bins);
+    const trainHist = toHistogramGeneric(trainVals, cfg.min, cfg.max, cfg.bins);
+    const similarity = refHist.reduce((sum,v,i)=>sum+Math.min(v, trainHist[i]),0)*100;
+    setDonut('donutSimilarity', similarity);
+    const r = pearsonR(repTraining.map(x=>x.alter), repTraining.map(x=>x.einkommen));
+    $('repCorrValue').textContent = r.toFixed(2);
+    const chi = chiSquaredSegments(repReference, repTraining), chiCrit = 5.99;
+    $('repChiValue').innerHTML = chi.toFixed(2)+' <span class="badge '+(chi>chiCrit?'warn':'ok')+'">'+(chi>chiCrit?'signifikant':'unauffällig')+'</span>';
+    const ks = ksStatistic(refVals, trainVals);
+    const ksCrit = 1.36*Math.sqrt((refVals.length+trainVals.length)/(refVals.length*trainVals.length));
+    $('repKsValue').innerHTML = ks.toFixed(3)+' <span class="badge '+(ks>ksCrit?'warn':'ok')+'">'+(ks>ksCrit?'signifikant':'unauffällig')+'</span>';
+  }
+  function renderRepresentativeness(){
+    const feature = $('repFeatureSelect').value;
+    const skew = Number($('skewSlider').value);
+    const imbalance = Number($('imbalanceSlider').value);
+    const anomalies = $('anomalyCheckbox').checked;
+    repReference = generateRepReference();
+    repTraining = generateRepTraining(skew, imbalance, anomalies);
+    renderRepExcerpt();
+    renderRepHistogram(feature);
+    renderRepScatter();
+    renderRepSegmentChart();
+    renderRepStats(feature);
+  }
+
+  // ---------- 5.1.5 Constraint-Testing (nutzt Datensatz aus 5.1.7) ----------
+  function countMissing(dataset){
+    let missingCount=0, totalCells=0;
+    const cols=['alter','einkommen','plz','kaufdatum'];
+    dataset.forEach(row=>{ cols.forEach(c=>{ totalCells++; if(row[c]===null||row[c]===undefined) missingCount++; }); });
+    return { missingCount, totalCells };
+  }
+  function countDuplicates(dataset){
+    const seen = new Map(); const dupSet = new Set();
+    dataset.forEach((row,idx)=>{ const key = JSON.stringify([row.alter,row.einkommen,row.plz,row.kaufdatum]); if(seen.has(key)){ dupSet.add(idx); dupSet.add(seen.get(key)); } else { seen.set(key, idx); } });
+    return dupSet;
+  }
+  function countOutliers(dataset){
+    const values = dataset.map(r=>r.einkommen).filter(v=>v!==null&&v!==undefined).sort((a,b)=>a-b);
+    const q1 = quantile(values,0.25), q3 = quantile(values,0.75), iqr = q3-q1;
+    const lower = q1-1.5*iqr, upper = q3+1.5*iqr;
+    const outSet = new Set();
+    dataset.forEach((row,idx)=>{
+      if (row.einkommen!==null && (row.einkommen<lower || row.einkommen>upper)) outSet.add(idx);
+      if (row.alter!==null && (row.alter<16 || row.alter>100)) outSet.add(idx);
+    });
+    return outSet;
+  }
+  const TYPE_RULES = { plz5:{label:'5-stellig (DE)', re:/^\d{5}$/}, plz4:{label:'4-stellig (AT/CH)', re:/^\d{4}$/}, any:{label:'beliebig (kein Format geprüft)', re:/.*/} };
+  const constraintState = { missingCells:new Set(), rangeRows:new Set(), typeRows:new Set(), duplicateRows:new Set(), outlierRows:new Set() };
+  function renderConstraintPreview(){
+    const cols = ['id','alter','einkommen','plz','kaufdatum'];
+    const labels = { id:'Kunden-ID', alter:'Alter', einkommen:'Einkommen (€)', plz:'PLZ', kaufdatum:'Kaufdatum' };
+    let html = '<table><thead><tr><th>#</th>'+cols.map(c=>'<th>'+labels[c]+'</th>').join('')+'</tr></thead><tbody>';
+    state.dataset.forEach((row,idx)=>{
+      const classes = [];
+      if (constraintState.duplicateRows.has(idx)) classes.push('row-duplicate');
+      if (constraintState.outlierRows.has(idx)) classes.push('row-outlier');
+      if (constraintState.rangeRows.has(idx) || constraintState.typeRows.has(idx)) classes.push('row-mismatch');
+      html += '<tr class="'+classes.join(' ')+'"><td>'+(idx+1)+'</td>';
+      cols.forEach(c=>{
+        const val = row[c]; const missing = (val===null||val===undefined);
+        const cellClass = (missing && constraintState.missingCells.has(idx+':'+c)) ? 'cell-missing' : '';
+        html += '<td class="'+cellClass+'">'+(missing?'–':val)+'</td>';
+      });
+      html += '</tr>';
+    });
+    html += '</tbody></table>';
+    $('constraintPreviewWrap').innerHTML = html;
+  }
+  function testMissing(){
+    const ruleActive = $('ctrlMissingActive').checked;
+    const { missingCount, totalCells } = countMissing(state.dataset);
+    constraintState.missingCells = new Set();
+    state.dataset.forEach((row,idx)=>{ ['alter','einkommen','plz','kaufdatum'].forEach(c=>{ if(row[c]===null||row[c]===undefined) constraintState.missingCells.add(idx+':'+c); }); });
+    setResult('resultMissing', ruleActive && missingCount>0, missingCount+' von '+totalCells+' Zellen fehlen.'+(ruleActive?' Regel verletzt (fehlende Werte nicht erlaubt).':' Fehlende Werte sind laut Regel erlaubt.'));
+    renderConstraintPreview();
+  }
+  function testRange(){
+    const maxAge = Number($('ctrlRangeMax').value);
+    $('ctrlRangeMaxValue').textContent = maxAge;
+    const idxs = state.dataset.map((r,idx)=>idx).filter(idx=>{ const r=state.dataset[idx]; return r.alter!==null && (r.alter<0 || r.alter>maxAge); });
+    constraintState.rangeRows = new Set(idxs);
+    setResult('resultRange', idxs.length>0, idxs.length+' Zeile(n) verletzen „Alter ≤ '+maxAge+'".');
+    renderConstraintPreview();
+  }
+  function testType(){
+    const key = $('ctrlTypeSelect').value; const rule = TYPE_RULES[key];
+    const idxs = state.dataset.map((r,idx)=>idx).filter(idx=>{ const r=state.dataset[idx]; return r.plz!==null && !rule.re.test(String(r.plz)); });
+    constraintState.typeRows = new Set(idxs);
+    setResult('resultType', idxs.length>0, idxs.length+' Zeile(n) entsprechen nicht dem Format „'+rule.label+'".');
+    renderConstraintPreview();
+  }
+  function testDuplicate(){
+    const ruleActive = $('ctrlDuplicateActive').checked;
+    const dupSet = countDuplicates(state.dataset);
+    constraintState.duplicateRows = dupSet;
+    setResult('resultDuplicate', ruleActive && dupSet.size>0, dupSet.size+' Zeile(n) sind Teil eines Duplikat-Paares.'+(ruleActive?' Regel verletzt (Duplikate nicht erlaubt).':' Duplikate sind laut Regel erlaubt.'));
+    renderConstraintPreview();
+  }
+  function testOutlier(){
+    const ruleActive = $('ctrlOutlierActive').checked;
+    const outSet = countOutliers(state.dataset);
+    constraintState.outlierRows = outSet;
+    setResult('resultOutlier', ruleActive && outSet.size>0, outSet.size+' auffällige Zeile(n) gefunden (IQR-Methode).'+(ruleActive?' Regel verletzt (Ausreißer nicht erlaubt).':' Ausreißer sind laut Regel erlaubt.'));
+    renderConstraintPreview();
+  }
+  function testSum(){
+    const maxSum = Number($('ctrlSumMax').value);
+    const sum = state.dataset.reduce((acc,r)=> acc + (r.einkommen||0), 0);
+    setResult('resultSum', sum>maxSum, 'Summe aller Einkommen: '+sum.toLocaleString('de-DE')+' € (Grenzwert: '+maxSum.toLocaleString('de-DE')+' €).');
+  }
+  function testCount(){
+    const minCount = Number($('ctrlCountMin').value);
+    const validCount = state.dataset.filter(r=> r.alter!==null && r.einkommen!==null && r.plz!==null && r.kaufdatum!==null).length;
+    setResult('resultCount', validCount<minCount, validCount+' vollständige Zeile(n) (Mindestanzahl: '+minCount+').');
+  }
+  function testUseful(){
+    const active = $('ctrlUsefulActive').checked;
+    const uniqueIds = new Set(state.dataset.map(r=>r.id)).size;
+    setResult('resultUseful', active && uniqueIds===state.dataset.length, 'Spalte „Kunden-ID" hat '+uniqueIds+' von '+state.dataset.length+' eindeutigen Werten.'+(active?' Regel verletzt (Attribut liefert keine lernbaren Muster).':' Prüfung deaktiviert.'));
+  }
+  function resetConstraintChecks(){
+    constraintState.missingCells = new Set(); constraintState.rangeRows = new Set(); constraintState.typeRows = new Set();
+    constraintState.duplicateRows = new Set(); constraintState.outlierRows = new Set();
+    ['resultMissing','resultRange','resultType','resultDuplicate','resultOutlier','resultSum','resultCount','resultUseful'].forEach(id=>{ $(id).textContent = 'Noch nicht getestet.'; });
+    renderConstraintPreview();
+  }
+
+  // ---------- 5.1.6 Label-Correctness ----------
+  const LABEL_ITEMS = ['Beispiel 1','Beispiel 2','Beispiel 3','Beispiel 4','Beispiel 5','Beispiel 6','Beispiel 7','Beispiel 8'];
+  const ANNOTATOR_A = ['Hund','Katze','Hund','Vogel','Hund','Katze','Katze','Hund'];
+  const ANNOTATOR_B = ['Hund','Katze','Katze','Vogel','Hund','Hund','Vogel','Hund'];
+  const EXPERT_LABELS = ['Hund','Katze','Katze','Vogel','Hund','Hund','Vogel','Hund'];
+  const RISK_SCORE = [0.22,0.15,0.85,0.12,0.30,0.78,0.91,0.19];
+  const MODEL_LOSS = [0.05,0.03,0.61,0.02,0.08,0.58,0.74,0.04];
+  const MODEL_CONFIDENCE = [0.95,0.97,0.42,0.98,0.90,0.46,0.33,0.96];
+  const REFERENCE_DIST = { Hund:0.375, Katze:0.375, Vogel:0.25 };
+  const RULE_ALLOWED = [['Hund'],['Katze'],['Vogel'],['Vogel'],['Hund'],['Vogel'],['Hund'],['Hund']];
+  let LABEL_FINDINGS = LABEL_ITEMS.map(()=>[]);
+  function addFinding(idx, text){ if(!LABEL_FINDINGS[idx].includes(text)) LABEL_FINDINGS[idx].push(text); }
+  function logLabelStatus(text){ $('labelStatusBox').textContent += '\n'+text; $('labelStatusBox').scrollTop = $('labelStatusBox').scrollHeight; }
+  function renderLabelTable(){
+    $('labelTableBody').innerHTML = LABEL_ITEMS.map((item,idx)=>{
+      const findings = LABEL_FINDINGS[idx];
+      const flagged = findings.length>0;
+      return '<tr class="'+(flagged?'row-mismatch':'')+'"><td>'+item+'</td><td>'+ANNOTATOR_A[idx]+'</td><td>'+ANNOTATOR_B[idx]+'</td><td>'+(flagged?findings.join('; '):'–')+'</td></tr>';
+    }).join('');
+  }
+  function testExpertReview(){
+    let count=0;
+    LABEL_ITEMS.forEach((_,idx)=>{ if(EXPERT_LABELS[idx]!==ANNOTATOR_A[idx]){ addFinding(idx,'Expert Review: abweichend ('+EXPERT_LABELS[idx]+')'); count++; } });
+    renderLabelTable();
+    logLabelStatus('Expert Review durchgeführt: '+count+' von '+LABEL_ITEMS.length+' Labels weichen vom Experten-Urteil ab.');
+  }
+  function testMultipleAnnotation(){
+    let matches=0;
+    LABEL_ITEMS.forEach((_,idx)=>{ if(ANNOTATOR_A[idx]===ANNOTATOR_B[idx]) matches++; else addFinding(idx,'Multiple Annotation: Annotatoren uneins'); });
+    $('iaaWrap').style.display='grid';
+    setDonut('donutIAA', (matches/LABEL_ITEMS.length)*100);
+    renderLabelTable();
+    logLabelStatus('Multiple Annotation Test: IAA = '+((matches/LABEL_ITEMS.length)*100).toFixed(1)+' %.');
+  }
+  function testRiskPriority(){
+    let count=0;
+    LABEL_ITEMS.forEach((_,idx)=>{ if(RISK_SCORE[idx]>=0.6){ addFinding(idx,'Risiko hoch ('+(RISK_SCORE[idx]*100).toFixed(0)+' %)'); count++; } });
+    renderLabelTable();
+    logLabelStatus('Risikobasierte Priorisierung: '+count+' Beispiel(e) mit hohem Risikoscore identifiziert.');
+  }
+  function testDistribution(){
+    const counts = { Hund:0, Katze:0, Vogel:0 };
+    ANNOTATOR_A.forEach(l=>counts[l]++);
+    const total = ANNOTATOR_A.length;
+    let overClass=null, maxDiff=-Infinity;
+    Object.keys(REFERENCE_DIST).forEach(cls=>{ const diff=(counts[cls]/total)-REFERENCE_DIST[cls]; if(diff>maxDiff){ maxDiff=diff; overClass=cls; } });
+    if (maxDiff>0.05){
+      let candidateIdx=-1, bestRisk=-1;
+      LABEL_ITEMS.forEach((_,idx)=>{ if(ANNOTATOR_A[idx]===overClass && RISK_SCORE[idx]>bestRisk){ bestRisk=RISK_SCORE[idx]; candidateIdx=idx; } });
+      if (candidateIdx>=0) addFinding(candidateIdx, 'Distribution: Klasse „'+overClass+'" überrepräsentiert');
+    }
+    renderLabelTable();
+    logLabelStatus('Data Distribution Analysis: Klasse „'+overClass+'" ist um '+(maxDiff*100).toFixed(1)+' Prozentpunkte gegenüber der Referenzverteilung überrepräsentiert.');
+  }
+  function testRuleBased(){
+    let count=0;
+    LABEL_ITEMS.forEach((_,idx)=>{ if(!RULE_ALLOWED[idx].includes(ANNOTATOR_A[idx])){ addFinding(idx,'Regel verletzt (erlaubt: '+RULE_ALLOWED[idx].join('/')+')'); count++; } });
+    renderLabelTable();
+    logLabelStatus('Automatisierte Regel-Tests: '+count+' Regelverstöße gefunden.');
+  }
+  function testModelLoss(){
+    let count=0;
+    LABEL_ITEMS.forEach((_,idx)=>{ if(MODEL_LOSS[idx]>=0.4){ addFinding(idx,'Hoher Modell-Loss ('+MODEL_LOSS[idx].toFixed(2)+')'); count++; } });
+    renderLabelTable();
+    logLabelStatus('Model Loss Analysis: '+count+' Beispiel(e) mit auffällig hohem Loss.');
+  }
+  function testModelConfidence(){
+    let count=0;
+    LABEL_ITEMS.forEach((_,idx)=>{ if(MODEL_CONFIDENCE[idx]<0.6){ addFinding(idx,'Niedrige Modell-Konfidenz ('+(MODEL_CONFIDENCE[idx]*100).toFixed(0)+' %)'); count++; } });
+    renderLabelTable();
+    logLabelStatus('Model Confidence Score Analysis: '+count+' Beispiel(e) mit niedriger Konfidenz.');
+  }
+
+  // ---------- 5.1.7 Hands-on: Input Data Testing ----------
+  const state = { dataset: [], missingChecked:false, duplicateRows:new Set(), outlierRows:new Set() };
+  function generateDataset(seed){
+    const rnd = mulberry32(seed);
+    const rows = [];
+    const n = 22;
+    for(let i=0;i<n;i++){
+      const alter = Math.round(20 + rnd()*45);
+      const einkommen = Math.round(28000 + rnd()*55000);
+      const plz = String(Math.round(10000 + rnd()*89999));
+      const day = Math.round(1 + rnd()*27), month = Math.round(1 + rnd()*12), year = 2024 + Math.round(rnd());
+      const kaufdatum = year+'-'+String(month).padStart(2,'0')+'-'+String(day).padStart(2,'0');
+      rows.push({ id:'K'+String(i+1).padStart(3,'0'), alter, einkommen, plz, kaufdatum });
+    }
+    rows[2].einkommen = null;
+    rows[7].plz = null;
+    rows[13].alter = null;
+    rows[5].einkommen = 480000;
+    rows[16].alter = 141;
+    rows.push({...rows[3]});
+    rows.push({...rows[9]});
+    return rows;
+  }
+  function renderDatasetTable(){
+    const cols = ['id','alter','einkommen','plz','kaufdatum'];
+    const labels = { id:'Kunden-ID', alter:'Alter', einkommen:'Einkommen (€)', plz:'PLZ', kaufdatum:'Kaufdatum' };
+    let html = '<table><thead><tr><th>#</th>'+cols.map(c=>'<th>'+labels[c]+'</th>').join('')+'</tr></thead><tbody>';
+    state.dataset.forEach((row,idx)=>{
+      const classes = [];
+      if (state.duplicateRows.has(idx)) classes.push('row-duplicate');
+      if (state.outlierRows.has(idx)) classes.push('row-outlier');
+      html += '<tr class="'+classes.join(' ')+'"><td>'+(idx+1)+'</td>';
+      cols.forEach(c=>{
+        const val = row[c];
+        const missing = (val===null || val===undefined);
+        html += '<td class="'+(missing && state.missingChecked ? 'cell-missing' : '')+'">'+(missing ? (state.missingChecked?'fehlt':'–') : val)+'</td>';
+      });
+      html += '</tr>';
+    });
+    html += '</tbody></table>';
+    $('datasetTableWrap').innerHTML = html;
+  }
+  function logStatus(text){ $('statusBox').textContent += '\n'+text; $('statusBox').scrollTop = $('statusBox').scrollHeight; }
+  function onCheckMissing(){
+    const { missingCount, totalCells } = countMissing(state.dataset);
+    state.missingChecked = true;
+    renderDatasetTable();
+    setDonut('donutComplete', ((totalCells-missingCount)/totalCells)*100);
+    logStatus('Fehlende Werte geprüft: '+missingCount+' von '+totalCells+' Zellen sind leer.');
+  }
+  function onCheckDuplicates(){
+    const dupSet = countDuplicates(state.dataset);
+    state.duplicateRows = dupSet;
+    renderDatasetTable();
+    setDonut('donutUnique', ((state.dataset.length-dupSet.size)/state.dataset.length)*100);
+    logStatus('Duplikate geprüft: '+dupSet.size+' von '+state.dataset.length+' Zeilen sind Teil eines Duplikat-Paares.');
+  }
+  function onCheckOutliers(){
+    const outSet = countOutliers(state.dataset);
+    state.outlierRows = outSet;
+    renderDatasetTable();
+    setDonut('donutOutlierFree', ((state.dataset.length-outSet.size)/state.dataset.length)*100);
+    logStatus('Ausreißer geprüft (IQR-Methode auf Einkommen, Plausibilitätsgrenze auf Alter): '+outSet.size+' auffällige Zeile(n) gefunden.');
+  }
+  function regenerate(){
+    state.dataset = generateDataset(Math.floor(Math.random()*1e9));
+    state.missingChecked = false; state.duplicateRows = new Set(); state.outlierRows = new Set();
+    $('statusBox').textContent = 'Neuer Datensatz generiert. Führe die drei Prüfungen oben aus.';
+    setDonut('donutComplete', 0); setDonut('donutUnique', 0); setDonut('donutOutlierFree', 0);
+    ['donutComplete','donutUnique','donutOutlierFree'].forEach(id=>$(id).querySelector('.donut-value').textContent='– %');
+    renderDatasetTable();
+    resetConstraintChecks();
+  }
+
+  function initStepMenu(){
+    const links = Array.from(document.querySelectorAll('.step-link'));
+    links.forEach(link=>link.addEventListener('click',()=>{ links.forEach(l=>l.classList.remove('active')); link.classList.add('active'); }));
+    const sections = Array.from(document.querySelectorAll('main section[id^="step"]'));
+    const observer = new IntersectionObserver(entries=>{
+      entries.forEach(entry=>{ if(entry.isIntersecting){ const id=entry.target.getAttribute('id'); links.forEach(link=>link.classList.toggle('active', link.getAttribute('href')==='#'+id)); } });
+    }, { rootMargin:'-35% 0px -55% 0px', threshold:.01 });
+    sections.forEach(section=>observer.observe(section));
+  }
+
+  function attachEvents(){
+    $('radioAttrGender').addEventListener('change', ()=>{ biasState.attr='gender'; renderBiasTable(); });
+    $('radioAttrIncome').addEventListener('change', ()=>{ biasState.attr='einkommen'; renderBiasTable(); });
+    $('biasRunBtn').addEventListener('click', runBiasTest);
+
+    $('repFeatureSelect').addEventListener('change', renderRepresentativeness);
+    $('skewSlider').addEventListener('input', renderRepresentativeness);
+    $('imbalanceSlider').addEventListener('input', renderRepresentativeness);
+    $('anomalyCheckbox').addEventListener('change', renderRepresentativeness);
+
+    $('testMissingBtn').addEventListener('click', testMissing);
+    $('testRangeBtn').addEventListener('click', testRange);
+    $('ctrlRangeMax').addEventListener('input', ()=>{ $('ctrlRangeMaxValue').textContent = $('ctrlRangeMax').value; });
+    $('testTypeBtn').addEventListener('click', testType);
+    $('testDuplicateBtn').addEventListener('click', testDuplicate);
+    $('testOutlierBtn').addEventListener('click', testOutlier);
+    $('testSumBtn').addEventListener('click', testSum);
+    $('testCountBtn').addEventListener('click', testCount);
+    $('testUsefulBtn').addEventListener('click', testUseful);
+
+    $('btnExpertReview').addEventListener('click', testExpertReview);
+    $('btnMultipleAnnotation').addEventListener('click', testMultipleAnnotation);
+    $('btnRiskPriority').addEventListener('click', testRiskPriority);
+    $('btnDistribution').addEventListener('click', testDistribution);
+    $('btnRuleBased').addEventListener('click', testRuleBased);
+    $('btnModelLoss').addEventListener('click', testModelLoss);
+    $('btnModelConfidence').addEventListener('click', testModelConfidence);
+
+    $('checkMissingBtn').addEventListener('click', onCheckMissing);
+    $('checkDuplicatesBtn').addEventListener('click', onCheckDuplicates);
+    $('checkOutliersBtn').addEventListener('click', onCheckOutliers);
+    $('regenerateBtn').addEventListener('click', regenerate);
+
+    window.addEventListener('resize', ()=>{ renderRepresentativeness(); renderBiasChart(); });
+  }
+
+  renderBiasApproachSelect();
+  renderBiasTable();
+  renderPipeline();
+  renderRepresentativeness();
+  renderLabelTable();
+  state.dataset = generateDataset(42);
+  renderDatasetTable();
+  renderConstraintPreview();
+  attachEvents();
+  initStepMenu();
+</script>
+</body>
+</html>

@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Hands-on: Apply Metamorphic Testing – v1</title>
+<style>
+  :root {
+    --bg: #08111f; --bg2: #111b35; --text: #eef4ff; --muted: #bfd0ee;
+    --blue: #7db0ff; --blue2: #9f85ff; --green: #81e6b3; --yellow: #ffd166; --red: #ff9a9a;
+    --shadow: 0 18px 44px rgba(0,0,0,.28); --radius: 22px;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { margin:0; color:var(--text); font-family:Inter,Segoe UI,Arial,sans-serif; background:radial-gradient(circle at top right, rgba(125,176,255,.18), transparent 16%),radial-gradient(circle at 16% 18%, rgba(159,133,255,.12), transparent 22%),linear-gradient(180deg, var(--bg) 0%, var(--bg2) 100%); min-height:100vh; }
+  .wrap { max-width:1220px; margin:0 auto; padding:28px 22px 60px; }
+  .kicker{display:inline-block;margin-bottom:10px;padding:6px 10px;border-radius:999px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.08);font-size:.8rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;}
+  .hero { padding:24px; margin-bottom:18px; border-radius:26px; background:linear-gradient(135deg, rgba(125,176,255,.19), rgba(159,133,255,.14)); border:1px solid rgba(255,255,255,.10); box-shadow:var(--shadow); backdrop-filter:blur(18px) saturate(170%); }
+  .hero h2 { margin:0 0 8px; font-size:1.86rem; line-height:1.15; }
+  .hero p { margin:0 0 8px; color:var(--muted); line-height:1.55; }
+  .hero .mr-explain{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:14px;}
+  @media (max-width:820px){.hero .mr-explain{grid-template-columns:1fr;}}
+  .mr-explain .box{padding:12px 14px;border-radius:16px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);}
+  .mr-explain .box b{color:var(--blue);display:block;margin-bottom:4px;}
+  .card { padding:20px; margin-bottom:18px; border-radius:var(--radius); background:linear-gradient(180deg, rgba(255,255,255,.085), rgba(255,255,255,.045)); border:1px solid rgba(255,255,255,.09); box-shadow:var(--shadow); backdrop-filter:blur(16px) saturate(180%); position:relative; z-index:1; }
+  .card h3 { margin:0 0 6px; font-size:1.2rem; }
+  .sub { margin:0 0 14px; color:var(--muted); line-height:1.5; }
+  .subhead { display:flex; align-items:center; gap:9px; margin:16px 0 8px; font-size:1rem; font-weight:900; color:var(--blue); }
+  .subhead .tag { background:rgba(125,176,255,.16); border:1px solid rgba(125,176,255,.32); color:var(--text); padding:2px 10px; border-radius:999px; font-size:.72rem; }
+  .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:14px;} @media (max-width:900px){.grid-2{grid-template-columns:1fr;}}
+  .label-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;} label{font-weight:800;} .hint-text{color:var(--muted);font-size:.86rem;line-height:1.45;margin-top:4px;}
+  .tooltip{position:relative;display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;border:1px solid rgba(255,255,255,.15);color:var(--muted);font-size:.76rem;cursor:help;}
+  .tooltip::after{content:attr(data-tip);position:absolute;left:50%;top:calc(100% + 10px);transform:translateX(-50%);width:min(320px,85vw);background:#111a36;color:var(--text);border:1px solid rgba(255,255,255,.2);border-radius:14px;padding:10px 12px;font-size:.82rem;line-height:1.45;box-shadow:var(--shadow);opacity:0;visibility:hidden;transition:.16s ease;z-index:50;pointer-events:none;} .tooltip:hover::after,.tooltip:focus::after{opacity:1;visibility:visible;}
+  input[type="number"],input[type="range"],select,textarea{width:100%;padding:10px 12px;border-radius:14px;border:1px solid rgba(255,255,255,.11);background:#0f1a35;color:var(--text);outline:none;font-family:inherit;}
+  textarea{resize:vertical;min-height:44px;line-height:1.5;}
+  input[type="range"]{padding:0;accent-color:var(--blue);cursor:pointer;background:transparent;}
+  button{appearance:none;border:0;cursor:pointer;border-radius:15px;padding:10px 16px;font-weight:800;transition:.18s ease;font-size:.92rem;} .btn-primary{color:white;background:linear-gradient(135deg,var(--blue),var(--blue2));box-shadow:0 12px 28px rgba(125,176,255,.22);} .btn-primary:hover{transform:translateY(-1px);} .btn-secondary{color:var(--text);background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.08);} .btn-secondary:hover{background:rgba(255,255,255,.11);} .btn-row{display:flex;gap:10px;flex-wrap:wrap;}
+  .meta-box{padding:12px 14px;border-radius:16px;background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.09);color:var(--muted);line-height:1.5;font-size:.88rem;}
+  .note{padding:12px 14px;border-radius:16px;background:rgba(125,176,255,.08);border:1px solid rgba(125,176,255,.18);color:var(--muted);font-size:.86rem;line-height:1.5;}
+  .badge{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:999px;background:rgba(125,176,255,.16);color:var(--text);font-size:.78rem;border:1px solid rgba(125,176,255,.28);}
+  .badge.ok{background:rgba(134,230,178,.18);border-color:rgba(134,230,178,.35);color:#c9f7dd;}
+  .badge.warn{background:rgba(255,154,154,.16);border-color:rgba(255,154,154,.34);color:#ffd9d9;}
+  .table-wrap{overflow:auto;border-radius:16px;border:1px solid rgba(255,255,255,.08);margin-top:10px;} table{width:100%;border-collapse:collapse;min-width:560px;} th,td{border:1px solid rgba(255,255,255,.08);padding:7px 9px;text-align:left;font-size:.86rem;} th{background:rgba(255,255,255,.06);} td{background:rgba(255,255,255,.02);}
+  .status-box{white-space:pre-line;min-height:60px;max-height:220px;overflow:auto;background:#0e1731;color:#dce8ff;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;line-height:1.5;border-radius:16px;border:1px solid rgba(255,255,255,.09);padding:12px 14px;margin-top:12px;font-size:.86rem;}
+  .quick-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:14px;} @media (max-width:760px){.quick-metrics{grid-template-columns:1fr;}}
+  .quick-metric{padding:14px;border-radius:18px;background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.09);text-align:center;} .quick-metric .l{color:var(--muted);font-size:.84rem;} .quick-metric .v{margin-top:5px;font-size:1.3rem;font-weight:900;}
+  .metrics-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;} @media (max-width:760px){.metrics-grid{grid-template-columns:1fr;}}
+  .metric-donut-card{padding:16px;text-align:center;border-radius:20px;background:linear-gradient(180deg, rgba(255,255,255,.085), rgba(255,255,255,.045));border:1px solid rgba(255,255,255,.09);box-shadow:var(--shadow);}
+  .donut{width:112px;height:112px;border-radius:50%;margin:0 auto 10px;position:relative;display:flex;align-items:center;justify-content:center;background:conic-gradient(var(--clr,var(--blue)) calc(var(--pct,0)*1%), rgba(255,255,255,.08) 0);}
+  .donut::before{content:'';position:absolute;inset:11px;border-radius:50%;background:#101c38;}
+  .donut-value{position:relative;z-index:1;font-size:1.28rem;font-weight:900;}
+  .donut.green{--clr:var(--green);}
+  .metric-name{font-weight:900;margin-bottom:2px;font-size:.9rem;}
+  tr.row-fail td{background:rgba(255,154,154,.14) !important;}
+  tr.row-pass td{background:rgba(134,230,178,.10) !important;}
+  .check-item{display:flex;align-items:center;gap:10px;padding:6px 0;} .check-item input[type="checkbox"]{width:18px;height:18px;accent-color:var(--blue);cursor:pointer;flex:0 0 auto;}
+  .toggle-switch{position:relative;display:inline-block;width:38px;height:22px;vertical-align:middle;margin-right:8px;}
+  .toggle-switch input{opacity:0;width:0;height:0;position:absolute;}
+  .toggle-slider{position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.15);border-radius:999px;transition:.18s ease;}
+  .toggle-slider::before{content:'';position:absolute;height:16px;width:16px;left:2px;top:2px;background:var(--text);border-radius:50%;transition:.18s ease;}
+  .toggle-switch input:checked + .toggle-slider{background:linear-gradient(135deg,var(--blue),var(--blue2));}
+  .toggle-switch input:checked + .toggle-slider::before{transform:translateX(16px);}
+  .builder-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;}
+  .builder-box{padding:14px;border-radius:18px;background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.09);display:flex;flex-direction:column;gap:10px;}
+  .builder-title{font-weight:900;color:var(--blue);font-size:.94rem;}
+  .builder-field{display:flex;flex-direction:column;gap:4px;}
+  .builder-field .fl{display:flex;justify-content:space-between;font-size:.82rem;color:var(--muted);}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <section class="hero">
+    <div class="kicker">Übung · Kapitel 6</div>
+    <h2>6.1.6 Hands-on Exercise: Apply Metamorphic Testing</h2>
+    <p>Metamorphic Testing (MT) prüft nicht, ob eine <strong>einzelne</strong> Modellausgabe korrekt ist – dafür fehlt oft ein Orakel. Stattdessen prüfen wir Beziehungen (<strong>Metamorphe Relationen</strong>, MRs) zwischen einem <strong>Source-Testfall</strong> und einem daraus abgeleiteten <strong>Follow-up-Testfall</strong>.</p>
+    <div class="mr-explain">
+      <div class="box"><b>Source-Testfall</b>Ein konkreter Input mit beobachtetem Ergebnis – unabhängig davon, ob dieses Ergebnis nachweislich korrekt ist.</div>
+      <div class="box"><b>Metamorphe Relation (MR)</b>Eine Regel, wie sich das Ergebnis verändern <em>sollte</em>, wenn der Input auf bestimmte Weise verändert wird.</div>
+      <div class="box"><b>Follow-up-Testfall</b>Der gemäß MR veränderte Input. Verletzt das tatsächliche Ergebnis die erwartete Beziehung, ist ein Fehler (oder Bias) aufgedeckt.</div>
+    </div>
+  </section>
+
+  <section class="card" id="step1">
+    <h3>Schritt 1 · Modell und Datensatz</h3>
+    <p class="sub">Wir testen ein festes, deterministisches <strong>Kredit-Genehmigungsmodell</strong>.</p>
+    <div class="grid-2">
+      <div class="meta-box">
+        <strong>Eingaben:</strong> Geschlecht, Alter, Einkommen (€), gewünschte Kredithöhe (€), Bestandskunde (ja/nein), interne Notiz (Freitext, fachlich irrelevant)<br>
+        <strong>Ausgabe:</strong> Score (0–100) und Entscheidung (Bewilligt ab Score ≥ 60, sonst Abgelehnt)
+      </div>
+      <div class="meta-box">
+        <strong>Beispiel:</strong> M, 45 Jahre, 58.000 € Einkommen, 20.000 € Kredithöhe, Bestandskunde → Score <span id="exampleScore">–</span>, <span id="exampleDecision">–</span>
+      </div>
+    </div>
+    <div class="note" style="margin-top:12px;">Für die unten gezeigten Source-Testfälle gibt es keine verifizierten Ground-Truth-Labels – wir wissen also nicht, ob ein einzelnes Ergebnis „richtig" ist. Genau deshalb testen wir mit Metamorphic Testing über <strong>Beziehungen</strong> statt über Einzelfall-Orakel.</div>
+  </section>
+
+  <section class="card" id="step2">
+    <h3>Schritt 2 · Source-Testfälle auswählen</h3>
+    <p class="sub">Wähle über die Checkboxen Merkmalskombinationen aus, die als Source-Testfälle für Schritt 3 dienen sollen.</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th></th><th>#</th><th>Geschlecht</th><th>Alter</th><th>Einkommen (€)</th><th>Kredithöhe (€)</th><th>Bestandskunde</th><th>Notiz</th></tr></thead>
+        <tbody id="sourceTableBody"></tbody>
+      </table>
+    </div>
+    <div class="btn-row" style="margin-top:12px;"><button type="button" class="btn-primary" id="runSourceBtn">Tests ausführen</button></div>
+    <div class="table-wrap" id="sourceResultWrap" style="display:none;">
+      <table>
+        <thead><tr><th>#</th><th>Geschlecht</th><th>Alter</th><th>Einkommen (€)</th><th>Kredithöhe (€)</th><th>Score</th><th>Entscheidung</th></tr></thead>
+        <tbody id="sourceResultBody"></tbody>
+      </table>
+    </div>
+    <div class="status-box" id="sourceStatusBox">Bereit. Wähle mindestens einen Testfall aus und klicke „Tests ausführen".</div>
+  </section>
+
+  <section class="card" id="step3">
+    <h3>Schritt 3 · Metamorphe Relationen anwenden</h3>
+    <p class="sub">Für jeden in Schritt 2 getesteten Fall: Wähle eine MR, passe die Follow-up-Werte an und führe die Tests aus.</p>
+    <div class="builder-grid" id="builderGrid"><div class="hint-text">Führe zuerst Schritt 2 aus, um Source-Testfälle verfügbar zu machen.</div></div>
+    <div class="btn-row" style="margin-top:14px;"><button type="button" class="btn-primary" id="runFollowupBtn">Tests ausführen</button></div>
+    <div class="table-wrap" id="followupResultWrap" style="display:none;">
+      <table>
+        <thead><tr><th>#</th><th>MR</th><th>Erwartung</th><th>Score (Quelle → Folge)</th><th>Entscheidung (Quelle → Folge)</th><th>Verdikt</th></tr></thead>
+        <tbody id="followupResultBody"></tbody>
+      </table>
+    </div>
+    <div class="quick-metrics">
+      <div class="quick-metric"><div class="l">MRs getestet</div><div class="v" id="mrTotal">0</div></div>
+      <div class="quick-metric"><div class="l">MR erfüllt</div><div class="v" id="mrPass">0</div></div>
+      <div class="quick-metric"><div class="l">MR verletzt</div><div class="v" id="mrFail">0</div></div>
+    </div>
+    <div class="metrics-grid" style="margin-top:14px;">
+      <div class="metric-donut-card">
+        <div class="donut green" id="donutMR"><span class="donut-value">– %</span></div>
+        <div class="metric-name">Anteil erfüllter Metamorpher Relationen</div>
+      </div>
+    </div>
+    <div class="status-box" id="followupStatusBox">Bereit.</div>
+  </section>
+
+</div>
+
+<script>
+  function $(id){ return document.getElementById(id); }
+  function setDonut(id, pct){ const el = $(id); el.style.setProperty('--pct', pct.toFixed(1)); el.querySelector('.donut-value').textContent = pct.toFixed(1)+' %'; }
+
+  // ---------- Fixed model ----------
+  function creditScore(p){
+    let score = 50;
+    score += (p.einkommen - 50000)/1000;
+    score -= (p.kredithoehe - 15000)/1000;
+    score += (p.alter - 40)*0.2;
+    score += p.bestandskunde ? 8 : 0;
+    score -= p.gender==='F' ? 6 : 0;
+    return Math.max(0, Math.min(100, Math.round(score)));
+  }
+  function creditDecision(score){ return score>=60 ? 'Bewilligt' : 'Abgelehnt'; }
+
+  // ---------- Source test cases ----------
+  const TEST_CASES = [
+    { id:1, gender:'F', alter:29, einkommen:32000, kredithoehe:15000, bestandskunde:false, notiz:'Erstantrag online gestellt' },
+    { id:2, gender:'M', alter:45, einkommen:58000, kredithoehe:20000, bestandskunde:true,  notiz:'Bestandskunde seit 2018' },
+    { id:3, gender:'F', alter:52, einkommen:75000, kredithoehe:10000, bestandskunde:true,  notiz:'Vorzeitige Anschlussfinanzierung' },
+    { id:4, gender:'M', alter:23, einkommen:24000, kredithoehe:8000,  bestandskunde:false, notiz:'Erster Kredit nach Ausbildung' },
+    { id:5, gender:'F', alter:38, einkommen:61000, kredithoehe:30000, bestandskunde:false, notiz:'Umschuldung laufender Kredit' },
+    { id:6, gender:'M', alter:60, einkommen:90000, kredithoehe:5000,  bestandskunde:true,  notiz:'Kleinkredit für Renovierung' },
+    { id:7, gender:'F', alter:34, einkommen:47000, kredithoehe:18000, bestandskunde:false, notiz:'Antrag per Filiale' }
+  ];
+  const sourceResults = {}; // id -> {score, decision, case}
+
+  function renderSourceTable(){
+    $('sourceTableBody').innerHTML = TEST_CASES.map(c=>
+      '<tr><td><input type="checkbox" class="sourceCheck" data-id="'+c.id+'"></td><td>'+c.id+'</td><td>'+(c.gender==='F'?'Weiblich':'Männlich')+'</td><td>'+c.alter+'</td><td>'+c.einkommen+'</td><td>'+c.kredithoehe+'</td><td>'+(c.bestandskunde?'Ja':'Nein')+'</td><td>'+c.notiz+'</td></tr>'
+    ).join('');
+  }
+  function runSourceTests(){
+    const checked = Array.from(document.querySelectorAll('.sourceCheck')).filter(cb=>cb.checked).map(cb=>Number(cb.dataset.id));
+    if (checked.length===0){ $('sourceStatusBox').textContent = 'Bitte mindestens einen Testfall auswählen.'; return; }
+    checked.forEach(id=>{
+      const c = TEST_CASES.find(t=>t.id===id);
+      const score = creditScore(c);
+      sourceResults[id] = { score, decision: creditDecision(score), case: c };
+    });
+    $('sourceResultWrap').style.display = 'block';
+    $('sourceResultBody').innerHTML = checked.map(id=>{
+      const r = sourceResults[id];
+      return '<tr><td>'+id+'</td><td>'+(r.case.gender==='F'?'Weiblich':'Männlich')+'</td><td>'+r.case.alter+'</td><td>'+r.case.einkommen+'</td><td>'+r.case.kredithoehe+'</td><td>'+r.score+'</td><td>'+r.decision+'</td></tr>';
+    }).join('');
+    $('sourceStatusBox').textContent = checked.length+' Source-Testfall/-fälle ausgeführt. Diese stehen jetzt in Schritt 3 zur Verfügung.';
+    renderBuilders();
+  }
+
+  // ---------- Metamorphic Relations ----------
+  const MR_DEFS = [
+    { key:'A', label:'A – Irrelevantes Merkmal (Notiz ändern)', hint:'Ändere nur den Text im Notizfeld – fachlich irrelevant für die Entscheidung.', expectation:'gleich', type:'equal', apply:c=>({...c, notiz: c.notiz+' (bearbeitet)'}) },
+    { key:'B', label:'B – Einkommen erhöhen (≥10.000 €)', hint:'Erhöhe das Einkommen um mindestens 10.000 €, alles andere bleibt gleich.', expectation:'höher oder gleich', type:'increase', apply:c=>({...c, einkommen:c.einkommen+12000}) },
+    { key:'C', label:'C – Kredithöhe erhöhen (≥10.000 €)', hint:'Erhöhe die gewünschte Kredithöhe um mindestens 10.000 €.', expectation:'niedriger oder gleich', type:'decrease', apply:c=>({...c, kredithoehe:c.kredithoehe+12000}) },
+    { key:'D', label:'D – Geschlecht kippen', hint:'Ändere ausschließlich das Geschlecht.', expectation:'gleich (fachlich erwartet)', type:'equal', apply:c=>({...c, gender: c.gender==='F'?'M':'F'}) },
+    { key:'E', label:'E – Alter +1 Jahr', hint:'Erhöhe das Alter um genau 1 Jahr.', expectation:'annähernd gleich (±2 Punkte)', type:'approx', apply:c=>({...c, alter:c.alter+1}) }
+  ];
+  function evaluateMR(type, sourceScore, sourceDecision, followScore, followDecision){
+    if (type==='equal') return followScore===sourceScore && followDecision===sourceDecision;
+    if (type==='approx') return Math.abs(followScore-sourceScore)<=2 && followDecision===sourceDecision;
+    if (type==='increase') return followScore>=sourceScore && !(sourceDecision==='Bewilligt' && followDecision==='Abgelehnt');
+    if (type==='decrease') return followScore<=sourceScore && !(sourceDecision==='Abgelehnt' && followDecision==='Bewilligt');
+    return false;
+  }
+
+  function builderHTML(id){
+    const src = sourceResults[id].case;
+    return '<div class="builder-box" data-id="'+id+'">'
+      + '<div class="builder-title">Testfall #'+id+' (Quelle: Score '+sourceResults[id].score+', '+sourceResults[id].decision+')</div>'
+      + '<select class="mrSelect" data-id="'+id+'">'+MR_DEFS.map(mr=>'<option value="'+mr.key+'">'+mr.label+'</option>').join('')+'</select>'
+      + '<div class="hint-text mrHint" data-id="'+id+'"></div>'
+      + '<div class="builder-field"><div class="fl"><span>Geschlecht</span></div><label class="toggle-switch"><input type="checkbox" class="ctrlGender" data-id="'+id+'" '+(src.gender==='F'?'checked':'')+'><span class="toggle-slider"></span></label><span class="genderLabel" data-id="'+id+'">'+(src.gender==='F'?'Weiblich':'Männlich')+'</span></div>'
+      + '<div class="builder-field"><div class="fl"><span>Alter</span><span class="ctrlAlterValue" data-id="'+id+'">'+src.alter+'</span></div><input type="range" class="ctrlAlter" data-id="'+id+'" min="18" max="75" step="1" value="'+src.alter+'"></div>'
+      + '<div class="builder-field"><div class="fl"><span>Einkommen (€)</span><span class="ctrlEinkommenValue" data-id="'+id+'">'+src.einkommen+'</span></div><input type="range" class="ctrlEinkommen" data-id="'+id+'" min="15000" max="150000" step="1000" value="'+src.einkommen+'"></div>'
+      + '<div class="builder-field"><div class="fl"><span>Kredithöhe (€)</span><span class="ctrlKredithoeheValue" data-id="'+id+'">'+src.kredithoehe+'</span></div><input type="range" class="ctrlKredithoehe" data-id="'+id+'" min="2000" max="60000" step="1000" value="'+src.kredithoehe+'"></div>'
+      + '<div class="builder-field"><div class="fl"><span>Bestandskunde</span></div><label class="toggle-switch"><input type="checkbox" class="ctrlBestandskunde" data-id="'+id+'" '+(src.bestandskunde?'checked':'')+'><span class="toggle-slider"></span></label></div>'
+      + '<div class="builder-field"><label>Notiz</label><input type="text" class="ctrlNotiz" data-id="'+id+'" value="'+src.notiz+'"></div>'
+      + '</div>';
+  }
+  function applyMRSuggestion(id){
+    const src = sourceResults[id].case;
+    const mrKey = document.querySelector('.mrSelect[data-id="'+id+'"]').value;
+    const mr = MR_DEFS.find(m=>m.key===mrKey);
+    document.querySelector('.mrHint[data-id="'+id+'"]').textContent = mr.hint+' Erwartung: '+mr.expectation+'.';
+    const suggested = mr.apply(src);
+    const box = document.querySelector('.builder-box[data-id="'+id+'"]');
+    box.querySelector('.ctrlGender').checked = suggested.gender==='F';
+    box.querySelector('.genderLabel').textContent = suggested.gender==='F' ? 'Weiblich' : 'Männlich';
+    box.querySelector('.ctrlAlter').value = suggested.alter;
+    box.querySelector('.ctrlAlterValue').textContent = suggested.alter;
+    box.querySelector('.ctrlEinkommen').value = suggested.einkommen;
+    box.querySelector('.ctrlEinkommenValue').textContent = suggested.einkommen;
+    box.querySelector('.ctrlKredithoehe').value = suggested.kredithoehe;
+    box.querySelector('.ctrlKredithoeheValue').textContent = suggested.kredithoehe;
+    box.querySelector('.ctrlBestandskunde').checked = suggested.bestandskunde;
+    box.querySelector('.ctrlNotiz').value = suggested.notiz;
+  }
+  function renderBuilders(){
+    const ids = Object.keys(sourceResults).map(Number);
+    if (ids.length===0){ $('builderGrid').innerHTML = '<div class="hint-text">Führe zuerst Schritt 2 aus, um Source-Testfälle verfügbar zu machen.</div>'; return; }
+    $('builderGrid').innerHTML = ids.map(id=>builderHTML(id)).join('');
+    ids.forEach(id=>{
+      document.querySelector('.mrSelect[data-id="'+id+'"]').addEventListener('change', ()=>applyMRSuggestion(id));
+      document.querySelector('.ctrlGender[data-id="'+id+'"]').addEventListener('change', e=>{ document.querySelector('.genderLabel[data-id="'+id+'"]').textContent = e.target.checked ? 'Weiblich' : 'Männlich'; });
+      document.querySelector('.ctrlAlter[data-id="'+id+'"]').addEventListener('input', e=>{ document.querySelector('.ctrlAlterValue[data-id="'+id+'"]').textContent = e.target.value; });
+      document.querySelector('.ctrlEinkommen[data-id="'+id+'"]').addEventListener('input', e=>{ document.querySelector('.ctrlEinkommenValue[data-id="'+id+'"]').textContent = e.target.value; });
+      document.querySelector('.ctrlKredithoehe[data-id="'+id+'"]').addEventListener('input', e=>{ document.querySelector('.ctrlKredithoeheValue[data-id="'+id+'"]').textContent = e.target.value; });
+      applyMRSuggestion(id);
+    });
+  }
+  function runFollowupTests(){
+    const ids = Object.keys(sourceResults).map(Number);
+    if (ids.length===0){ $('followupStatusBox').textContent = 'Bitte zuerst Schritt 2 ausführen.'; return; }
+    let pass=0, fail=0;
+    const rows = ids.map(id=>{
+      const src = sourceResults[id];
+      const mrKey = document.querySelector('.mrSelect[data-id="'+id+'"]').value;
+      const mr = MR_DEFS.find(m=>m.key===mrKey);
+      const follow = {
+        gender: document.querySelector('.ctrlGender[data-id="'+id+'"]').checked ? 'F' : 'M',
+        alter: Number(document.querySelector('.ctrlAlter[data-id="'+id+'"]').value),
+        einkommen: Number(document.querySelector('.ctrlEinkommen[data-id="'+id+'"]').value),
+        kredithoehe: Number(document.querySelector('.ctrlKredithoehe[data-id="'+id+'"]').value),
+        bestandskunde: document.querySelector('.ctrlBestandskunde[data-id="'+id+'"]').checked,
+        notiz: document.querySelector('.ctrlNotiz[data-id="'+id+'"]').value
+      };
+      const followScore = creditScore(follow);
+      const followDecision = creditDecision(followScore);
+      const ok = evaluateMR(mr.type, src.score, src.decision, followScore, followDecision);
+      if (ok) pass++; else fail++;
+      return '<tr class="'+(ok?'row-pass':'row-fail')+'"><td>'+id+'</td><td>'+mr.key+'</td><td>'+mr.expectation+'</td><td>'+src.score+' → '+followScore+'</td><td>'+src.decision+' → '+followDecision+'</td><td><span class="badge '+(ok?'ok':'warn')+'">'+(ok?'MR erfüllt':'MR verletzt')+'</span></td></tr>';
+    });
+    $('followupResultWrap').style.display = 'block';
+    $('followupResultBody').innerHTML = rows.join('');
+    $('mrTotal').textContent = ids.length;
+    $('mrPass').textContent = pass;
+    $('mrFail').textContent = fail;
+    setDonut('donutMR', (pass/ids.length)*100);
+    $('followupStatusBox').textContent = ids.length+' Follow-up-Test(s) ausgeführt: '+pass+' MR(s) erfüllt, '+fail+' MR(s) verletzt.'+(fail>0?' Eine verletzte MR kann auf einen Fehler oder – bei MR D (Geschlecht kippen) – auf algorithmischen Bias hindeuten.':'');
+  }
+
+  renderSourceTable();
+  const exSc = creditScore({gender:'M', alter:45, einkommen:58000, kredithoehe:20000, bestandskunde:true});
+  $('exampleScore').textContent = exSc;
+  $('exampleDecision').textContent = creditDecision(exSc);
+  $('runSourceBtn').addEventListener('click', runSourceTests);
+  $('runFollowupBtn').addEventListener('click', runFollowupTests);
+</script>
+</body>
+</html>
